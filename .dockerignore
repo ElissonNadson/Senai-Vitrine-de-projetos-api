@@ -1,0 +1,16 @@
+node_modules
+dist
+Dockerfile
+docker-compose.yml
+.git
+.gitignore
+.env_copy
+.dockerignore
+logs/*
+!logs/.gitkeep
+
+errors/*
+!errors/.gitkeep
+
+access/*
+!access/.gitkeep

@@ -1,0 +1,26 @@
+version: '2.0'
+services:
+  vitrine-senai:
+    image: vitrine-senai:v2
+    container_name: vitrine-senai
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    volumes:
+      - ./logs:/usr/src/app/logs
+      - ./access:/usr/src/app/access
+    ports:
+      - 3107:511
+    env_file:
+      - ./.env
+    networks:
+      - vitrine-senai-network
+    restart: unless-stopped
+
+networks:
+  vitrine-senai-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.79.0.0/16"
