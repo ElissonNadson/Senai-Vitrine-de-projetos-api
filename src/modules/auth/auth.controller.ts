@@ -14,7 +14,8 @@ import { AuthService } from './auth.service';
 import { RefreshTokenDto, GoogleUserDto } from './dto/auth.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
-import { Response } from 'express';
+import { Response, Request } from 'express';
+import { AuthRateLimitGuard } from '../../common/guards/rate-limit.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -25,9 +26,9 @@ export class AuthController {
    * Inicia fluxo OAuth com Google
    */
   @Get('google')
-  @UseGuards(AuthGuard('google'))
+  @UseGuards(AuthRateLimitGuard, AuthGuard('google'))
   async googleAuth() {
-    // Guard redireciona automaticamente para Google
+    // Redireciona para Google
   }
 
   /**
@@ -35,8 +36,8 @@ export class AuthController {
    * Callback do Google OAuth
    */
   @Get('google/callback')
-  @UseGuards(AuthGuard('google'))
-  async googleAuthCallback(@Req() req, @Res() res: Response) {
+  @UseGuards(AuthRateLimitGuard, AuthGuard('google'))
+  async googleAuthCallback(@Req() req: any, @Res() res: Response) {
     const googleUser: GoogleUserDto = req.user;
 
     // Valida e cria/atualiza usuário

@@ -1,5 +1,4 @@
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
-import { AuditoriaModule } from './modules/auditoria/auditoria.module';
 import { AuthMiddleware } from './common/middlewares/auth.middleware';
 import { AuthModule } from './modules/auth/auth.module';
 import { PerfilModule } from './modules/perfil/perfil.module';
@@ -7,6 +6,10 @@ import { CursosModule } from './modules/cursos/cursos.module';
 import { TurmasModule } from './modules/turmas/turmas.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ProjetosModule } from './modules/projetos/projetos.module';
+import { UploadModule } from './modules/upload/upload.module';
+import { EtapasModule } from './modules/etapas/etapas.module';
+import { ProgressaoModule } from './modules/progressao/progressao.module';
+import { NotificacoesModule } from './modules/notificacoes/notificacoes.module';
 import * as cookieParser from 'cookie-parser';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
@@ -35,13 +38,16 @@ import { JwtModule } from '@nestjs/jwt';
         },
       },
     }),
-    AuditoriaModule,
     AuthModule,
     PerfilModule,
     CursosModule,
     TurmasModule,
     DashboardModule,
     ProjetosModule,
+    UploadModule,
+    EtapasModule,
+    ProgressaoModule,
+    NotificacoesModule,
     JwtModule
   ],
 })
