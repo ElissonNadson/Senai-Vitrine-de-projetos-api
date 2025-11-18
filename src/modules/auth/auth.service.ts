@@ -9,14 +9,12 @@ import { JwtService } from '@nestjs/jwt';
 import * as pg from 'pg';
 import { GoogleUserDto, AuthResponseDto } from './dto/auth.dto';
 import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
-import { AuditoriaService } from '../auditoria/auditoria.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     @Inject('PG_POOL') private readonly pool: pg.Pool,
     private readonly jwtService: JwtService,
-    private readonly auditoriaService: AuditoriaService,
   ) {}
 
   /**
@@ -52,9 +50,6 @@ export class AuthService {
       }
 
       await client.query('COMMIT');
-
-      // Registra login na auditoria
-      await this.registrarLoginAuditoria(usuario);
 
       // Gera token JWT
       const token = await this.gerarToken(usuario);
@@ -202,14 +197,6 @@ export class AuthService {
         exp: Math.floor(Date.now() / 1000) + 86400,
       };
 
-      // Chama serviço de auditoria
-      await this.auditoriaService.create(
-        {
-          tabulacao_uuid: usuario.uuid,
-          acao: 'LOGIN_GOOGLE',
-        },
-        jwtPayload,
-      );
     } catch (error) {
       console.error('Erro ao registrar auditoria de login:', error);
       // Não lança erro para não bloquear o login

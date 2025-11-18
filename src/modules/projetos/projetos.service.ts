@@ -8,7 +8,6 @@ import {
 } from '@nestjs/common';
 import { Pool } from 'pg';
 import { ProjetosDao } from './projetos.dao';
-import { AuditoriaService } from '../auditoria/auditoria.service';
 import {
   Passo1ProjetoDto,
   Passo2ProjetoDto,
@@ -23,7 +22,6 @@ export class ProjetosService {
   constructor(
     @Inject('PG_POOL') private readonly pool: Pool,
     private readonly projetosDao: ProjetosDao,
-    private readonly auditoriaService: AuditoriaService,
   ) {}
 
   /**
@@ -77,16 +75,6 @@ export class ProjetosService {
       await this.projetosDao.adicionarAutores(
         projetoUuid,
         [{ aluno_uuid: alunoUuid, papel: 'LIDER' }],
-        client,
-      );
-
-      // Auditoria
-      await this.auditoriaService.create(
-        {
-          usuario_uuid: usuario.uuid,
-          acao: 'CRIAR_PROJETO_PASSO1',
-          detalhes: { projeto_uuid: projetoUuid, titulo: dados.titulo },
-        },
         client,
       );
 
@@ -159,19 +147,6 @@ export class ProjetosService {
 
       // Adiciona novos autores
       await this.projetosDao.adicionarAutores(projetoUuid, dados.autores, client);
-
-      // Auditoria
-      await this.auditoriaService.create(
-        {
-          usuario_uuid: usuario.uuid,
-          acao: 'ADICIONAR_AUTORES_PASSO2',
-          detalhes: {
-            projeto_uuid: projetoUuid,
-            total_autores: dados.autores.length,
-          },
-        },
-        client,
-      );
 
       await client.query('COMMIT');
 
@@ -253,20 +228,6 @@ export class ProjetosService {
       // Atualiza objetivos e resultados esperados
       await this.projetosDao.atualizarPasso3(projetoUuid, dados, client);
 
-      // Auditoria
-      await this.auditoriaService.create(
-        {
-          usuario_uuid: usuario.uuid,
-          acao: 'ADICIONAR_ORIENTADORES_PASSO3',
-          detalhes: {
-            projeto_uuid: projetoUuid,
-            total_orientadores: dados.orientadores_uuids.length,
-            total_tecnologias: dados.tecnologias_uuids.length,
-          },
-        },
-        client,
-      );
-
       await client.query('COMMIT');
 
       return {
@@ -324,16 +285,6 @@ export class ProjetosService {
 
       // Publica projeto
       await this.projetosDao.publicarProjeto(projetoUuid, dados, client);
-
-      // Auditoria
-      await this.auditoriaService.create(
-        {
-          usuario_uuid: usuario.uuid,
-          acao: 'PUBLICAR_PROJETO_PASSO4',
-          detalhes: { projeto_uuid: projetoUuid },
-        },
-        client,
-      );
 
       await client.query('COMMIT');
 
@@ -514,16 +465,6 @@ export class ProjetosService {
         );
       }
 
-      // Auditoria
-      await this.auditoriaService.create(
-        {
-          usuario_uuid: usuario.uuid,
-          acao: 'ATUALIZAR_PROJETO',
-          detalhes: { projeto_uuid: projetoUuid, campos: Object.keys(dados) },
-        },
-        client,
-      );
-
       await client.query('COMMIT');
 
       return { mensagem: 'Projeto atualizado com sucesso' };
@@ -573,13 +514,6 @@ export class ProjetosService {
     }
 
     await this.projetosDao.deletarProjeto(projetoUuid);
-
-    // Auditoria
-    await this.auditoriaService.create({
-      usuario_uuid: usuario.uuid,
-      acao: 'DELETAR_PROJETO',
-      detalhes: { projeto_uuid: projetoUuid, titulo: projeto.titulo },
-    });
 
     return { mensagem: 'Projeto arquivado com sucesso' };
   }
