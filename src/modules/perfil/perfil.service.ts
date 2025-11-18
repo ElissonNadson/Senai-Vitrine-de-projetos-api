@@ -12,13 +12,11 @@ import {
   AtualizarPerfilDto,
 } from './dto/perfil.dto';
 import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
-import { AuditoriaService } from '../auditoria/auditoria.service';
 
 @Injectable()
 export class PerfilService {
   constructor(
     private readonly perfilDao: PerfilDao,
-    private readonly auditoriaService: AuditoriaService,
   ) {}
 
   /**
@@ -60,15 +58,6 @@ export class PerfilService {
       await this.perfilDao.marcarCadastroCompleto(client, user.uuid);
 
       await client.query('COMMIT');
-
-      // Registra na auditoria
-      await this.auditoriaService.create(
-        {
-          tabulacao_uuid: user.uuid,
-          acao: 'COMPLETAR_CADASTRO',
-        },
-        user,
-      );
 
       return {
         mensagem: 'Cadastro completado com sucesso',
@@ -130,15 +119,6 @@ export class PerfilService {
 
       await client.query('COMMIT');
 
-      // Registra na auditoria
-      await this.auditoriaService.create(
-        {
-          tabulacao_uuid: user.uuid,
-          acao: 'COMPLETAR_CADASTRO',
-        },
-        user,
-      );
-
       return {
         mensagem: 'Cadastro completado com sucesso',
         perfil: professorAtualizado,
@@ -190,15 +170,6 @@ export class PerfilService {
       }
 
       await client.query('COMMIT');
-
-      // Registra na auditoria
-      await this.auditoriaService.create(
-        {
-          tabulacao_uuid: user.uuid,
-          acao: 'ATUALIZAR_PERFIL',
-        },
-        user,
-      );
 
       return {
         mensagem: 'Perfil atualizado com sucesso',
