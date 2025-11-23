@@ -145,6 +145,7 @@ export class AuthService {
    * Gera token JWT
    */
   private async gerarToken(usuario: any): Promise<string> {
+    // Não incluir `iat`/`exp` manualmente: o JwtModule já aplica `signOptions.expiresIn`
     const payload: JwtPayload = {
       uuid: usuario.uuid,
       email: usuario.email,
@@ -152,8 +153,6 @@ export class AuthService {
       nome: usuario.nome,
       googleId: usuario.google_id,
       primeiroAcesso: usuario.primeiro_acesso,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 86400, // 24 horas
     };
 
     return this.jwtService.sign(payload);

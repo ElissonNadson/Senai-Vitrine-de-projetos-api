@@ -13,7 +13,7 @@ import { UploadService } from './upload.service';
 import { UploadRateLimitGuard } from '../../common/guards/rate-limit.guard';
 
 @Controller('upload')
-@UseGuards(AuthGuard('jwt'), UploadRateLimitGuard)
+@UseGuards(UploadRateLimitGuard)
 export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 

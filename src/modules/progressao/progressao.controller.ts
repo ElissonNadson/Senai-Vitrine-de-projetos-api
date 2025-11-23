@@ -11,7 +11,7 @@ import { ProgressaoService } from './progressao.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @Controller('progressao')
-@UseGuards(AuthGuard('jwt'))
+// @UseGuards(AuthGuard('jwt'))
 export class ProgressaoController {
   constructor(private readonly progressaoService: ProgressaoService) {}
 

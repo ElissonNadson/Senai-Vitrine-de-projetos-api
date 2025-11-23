@@ -20,7 +20,7 @@ import {
 } from './dto/create-etapa.dto';
 
 @Controller('etapas')
-@UseGuards(AuthGuard('jwt'))
+// @UseGuards(AuthGuard('jwt'))
 export class EtapasController {
   constructor(private readonly etapasService: EtapasService) {}
 

@@ -4,7 +4,7 @@ import { DashboardService } from './dashboard.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @Controller('dashboard')
-@UseGuards(AuthGuard('jwt'))
+// @UseGuards(AuthGuard('jwt'))
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
