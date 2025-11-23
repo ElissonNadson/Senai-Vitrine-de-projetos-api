@@ -29,7 +29,7 @@ export class ProjetosController {
    * Cria rascunho do projeto (Passo 1)
    */
   @Post('passo1')
-  @UseGuards(AuthGuard('jwt'))
+  // @UseGuards(AuthGuard('jwt'))
   async criarPasso1(
     @Body() dados: Passo1ProjetoDto,
     @CurrentUser() usuario: any,
@@ -42,7 +42,7 @@ export class ProjetosController {
    * Adiciona autores ao projeto (Passo 2)
    */
   @Post(':uuid/passo2')
-  @UseGuards(AuthGuard('jwt'))
+  // @UseGuards(AuthGuard('jwt'))
   async adicionarAutoresPasso2(
     @Param('uuid') uuid: string,
     @Body() dados: Passo2ProjetoDto,
@@ -56,7 +56,7 @@ export class ProjetosController {
    * Adiciona orientadores e tecnologias (Passo 3)
    */
   @Post(':uuid/passo3')
-  @UseGuards(AuthGuard('jwt'))
+  // @UseGuards(AuthGuard('jwt'))
   async adicionarOrientadoresPasso3(
     @Param('uuid') uuid: string,
     @Body() dados: Passo3ProjetoDto,
@@ -70,7 +70,7 @@ export class ProjetosController {
    * Publica projeto com banner (Passo 4)
    */
   @Post(':uuid/passo4')
-  @UseGuards(AuthGuard('jwt'))
+  // @UseGuards(AuthGuard('jwt'))
   async publicarProjetoPasso4(
     @Param('uuid') uuid: string,
     @Body() dados: Passo4ProjetoDto,
@@ -116,7 +116,7 @@ export class ProjetosController {
    * Atualiza projeto existente
    */
   @Patch(':uuid')
-  @UseGuards(AuthGuard('jwt'))
+  // @UseGuards(AuthGuard('jwt'))
   async atualizarProjeto(
     @Param('uuid') uuid: string,
     @Body() dados: UpdateProjetoDto,
@@ -130,7 +130,7 @@ export class ProjetosController {
    * Deleta projeto (soft delete - arquiva)
    */
   @Delete(':uuid')
-  @UseGuards(AuthGuard('jwt'))
+  // @UseGuards(AuthGuard('jwt'))
   async deletarProjeto(@Param('uuid') uuid: string, @CurrentUser() usuario: any) {
     return this.projetosService.deletarProjeto(uuid, usuario);
   }

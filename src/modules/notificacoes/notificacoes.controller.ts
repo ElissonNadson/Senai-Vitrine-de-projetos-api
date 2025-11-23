@@ -12,7 +12,7 @@ import { NotificacoesService } from './notificacoes.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @Controller('notificacoes')
-@UseGuards(AuthGuard('jwt'))
+// @UseGuards(AuthGuard('jwt'))
 export class NotificacoesController {
   constructor(private readonly notificacoesService: NotificacoesService) {}
 
