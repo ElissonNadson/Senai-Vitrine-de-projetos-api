@@ -14,7 +14,7 @@ import { AuthService } from './auth.service';
 import { RefreshTokenDto, GoogleUserDto } from './dto/auth.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
-import { Response, Request } from 'express';
+import { Response } from 'express';
 import { AuthRateLimitGuard } from '../../common/guards/rate-limit.guard';
 
 @Controller('auth')
@@ -37,22 +37,32 @@ export class AuthController {
    */
   @Get('google/callback')
   @UseGuards(AuthRateLimitGuard, AuthGuard('google'))
-  async googleAuthCallback(@Req() req: any, @Res() res: Response) {
+  async googleAuthCallback(@Req() req: any, @Res() res) {
     const googleUser: GoogleUserDto = req.user;
 
     // Valida e cria/atualiza usuário
     const authResponse = await this.authService.validarCallback(googleUser);
+    const response = {
+      usuario: authResponse.usuario,
+      primeiroAcesso: authResponse.usuario.primeiroAcesso,
+    };
+
+    res.cookie('token', authResponse.token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Lax',
+    });
 
     // Retorna token JWT (ou redireciona para frontend com token)
     if (process.env.NODE_ENV === 'production') {
       // Em produção, redireciona para frontend com token
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       return res.redirect(
-        `${frontendUrl}/auth/callback?token=${authResponse.token}&primeiroAcesso=${authResponse.usuario.primeiroAcesso}`,
+        `${frontendUrl}/auth/callback?primeiroAcesso=${authResponse.usuario.primeiroAcesso}`,
       );
     } else {
       // Em desenvolvimento, retorna JSON
-      return res.status(HttpStatus.OK).json(authResponse);
+      return res.status(HttpStatus.OK).json(response);
     }
   }
 
@@ -61,7 +71,7 @@ export class AuthController {
    * Retorna dados do usuário logado
    */
   @Get('me')
-  @UseGuards(AuthGuard('jwt'))
+  // @UseGuards(AuthGuard('jwt'))
   async getMe(@CurrentUser() user: JwtPayload) {
     return this.authService.obterUsuarioAtual(user.uuid);
   }
