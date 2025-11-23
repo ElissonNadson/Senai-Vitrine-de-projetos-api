@@ -5,6 +5,6 @@ export interface JwtPayload {
   tipo: 'ALUNO' | 'PROFESSOR' | 'ADMIN';
   nome: string;
   googleId?: string;
-  iat: number;
-  exp: number;
+  iat?: number;
+  exp?: number;
 }

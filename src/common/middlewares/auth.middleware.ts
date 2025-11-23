@@ -7,8 +7,11 @@ export class AuthMiddleware implements NestMiddleware {
   constructor(private jwtService: JwtService) {}
 
   async use(req: Request, res: Response, next: NextFunction) {
+    // Use originalUrl para pegar a URL completa (p.ex. com query string)
+    const originalUrl = (req as any).originalUrl || req.url || req.path;
     const isAuthRoute =
-      req.path === '/auth/login';
+      originalUrl === '/auth/login' || originalUrl.startsWith('/auth/google');
+      
     const token = this.extractTokenFromHeader(req);
 
     // Se a rota é de autenticação, não requer validação de token
@@ -39,7 +42,17 @@ export class AuthMiddleware implements NestMiddleware {
   private extractTokenFromHeader(request: Request): string | undefined {
     // Tenta obter o token de dois lugares: do cabeçalho Authorization ou do cookie
     const tokenFromCookie = request.cookies?.token;
-    const tokenFromHeader = request.headers.authorization;
-    return tokenFromCookie ?? tokenFromHeader;  // Retorna o token encontrado, seja do cookie ou do cabeçalho
+    const authHeader = request.headers.authorization as string | undefined;
+    let tokenFromHeader: string | undefined;
+
+    if (authHeader) {
+      // Suporta o formato "Bearer <token>"
+      if (authHeader.toLowerCase().startsWith('bearer ')) {
+        tokenFromHeader = authHeader.slice(7).trim();
+      } else {
+        tokenFromHeader = authHeader;
+      }
+    }
+    return tokenFromCookie ?? tokenFromHeader; // Retorna o token encontrado, seja do cookie ou do cabeçalho
   }
 }

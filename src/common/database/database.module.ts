@@ -8,12 +8,19 @@ import { Pool } from 'pg';
     {
       provide: 'PG_POOL',
       useFactory: async () => {
+        // Preferir variáveis específicas de DB para evitar colisão com variáveis de SO (ex: USERNAME no Windows)
+        const dbUser = process.env.DB_USER || process.env.POSTGRES_USER || process.env.USERNAME;
+        const dbPassword = process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD || process.env.PASSWORD;
+        const dbHost = process.env.HOST || process.env.DB_HOST || 'localhost';
+        const dbPort = Number(process.env.DB_PORT || process.env.POSTGRES_PORT) || 5432;
+        const dbName = process.env.DATABASE || process.env.POSTGRES_DB;
+
         const pool = new Pool({
-          user: process.env.USERNAME,
-          password: process.env.PASSWORD,
-          host: process.env.HOST,
-          database: process.env.DATABASE,
-          port: Number(process.env.DB_PORT) || 5432, // Porta padrão do Postgres
+          user: dbUser,
+          password: dbPassword,
+          host: dbHost,
+          database: dbName,
+          port: dbPort, // Porta do Postgres
           max: 10, // Máximo de conexões no pool
         });
 
@@ -21,7 +28,6 @@ import { Pool } from 'pg';
           // Testa a conexão durante a inicialização
           const client = await pool.connect();
           client.release();
-          console.log('Conectado ao banco de dados PostgreSQL com sucesso!');
         } catch (err) {
           console.error('Erro ao conectar ao banco de dados PostgreSQL:', err);
         }
