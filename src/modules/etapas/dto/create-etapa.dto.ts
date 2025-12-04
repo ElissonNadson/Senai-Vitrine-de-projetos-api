@@ -31,6 +31,12 @@ export class CreateEtapaDto {
     message: 'Tipo de etapa inválido',
   })
   tipo_etapa: string;
+
+  @IsIn(['IDEACAO', 'MODELAGEM', 'PROTOTIPAGEM', 'IMPLEMENTACAO'], {
+    message: 'Fase deve ser IDEACAO, MODELAGEM, PROTOTIPAGEM ou IMPLEMENTACAO',
+  })
+  @IsOptional()
+  fase?: string;
 }
 
 /**

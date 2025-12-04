@@ -10,6 +10,7 @@ import {
   ArrayMaxSize,
   ValidateNested,
   IsIn,
+  IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -147,4 +148,16 @@ export class UpdateProjetoDto {
   @IsUUID('4', { each: true })
   @IsOptional()
   tecnologias_uuids?: string[];
+
+  @IsBoolean()
+  @IsOptional()
+  itinerario?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  lab_maker?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  participou_saga?: boolean;
 }

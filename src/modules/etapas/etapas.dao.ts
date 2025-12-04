@@ -16,12 +16,20 @@ export class EtapasDao {
   ): Promise<string> {
     const db = client || this.pool;
 
+    // Obter a próxima ordem para a etapa
+    const ordemResult = await db.query(
+      `SELECT COALESCE(MAX(ordem), 0) + 1 as proxima_ordem 
+       FROM etapas_projeto WHERE projeto_uuid = $1`,
+      [projetoUuid],
+    );
+    const ordem = ordemResult.rows[0].proxima_ordem;
+
     const result = await db.query(
       `INSERT INTO etapas_projeto (
-        projeto_uuid, titulo, descricao, tipo_etapa, criado_por_uuid, status
-      ) VALUES ($1, $2, $3, $4, $5, 'EM_ANDAMENTO')
+        projeto_uuid, titulo, nome, descricao, tipo_etapa, fase, ordem, criado_por_uuid, status
+      ) VALUES ($1, $2, $2, $3, $4, $5, $6, $7, 'EM_ANDAMENTO')
       RETURNING uuid`,
-      [projetoUuid, dados.titulo, dados.descricao, dados.tipo_etapa, criadoPorUuid],
+      [projetoUuid, dados.titulo, dados.descricao, dados.tipo_etapa, dados.fase, ordem, criadoPorUuid],
     );
 
     return result.rows[0].uuid;
@@ -224,5 +232,17 @@ export class EtapasDao {
     );
 
     return result.rows[0]?.url || null;
+  }
+
+  /**
+   * Conta anexos de uma etapa
+   */
+  async contarAnexos(etapaUuid: string): Promise<number> {
+    const result = await this.pool.query(
+      'SELECT COUNT(*) as total FROM anexos_etapas WHERE etapa_uuid = $1',
+      [etapaUuid],
+    );
+
+    return parseInt(result.rows[0].total, 10);
   }
 }
