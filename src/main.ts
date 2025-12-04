@@ -3,6 +3,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 const expressSanitizer = require('express-sanitizer');
 import * as cookieParser from 'cookie-parser';
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import rateLimit from 'express-rate-limit';
 import { AppModule } from './app.module';
 import * as cors from 'cors';
@@ -10,6 +11,14 @@ import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  
+  // Configuração de validação global
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: false, // Permite campos não declarados no DTO
+    transform: true, // Transforma o body para a classe DTO
+    forbidNonWhitelisted: false, // Não rejeita campos extras
+  }));
+  
   app.use(cors({
     origin: ['http://localhost:5173'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
