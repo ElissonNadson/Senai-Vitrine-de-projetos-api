@@ -310,7 +310,7 @@ export class ProjetosService {
     }
 
     // Verifica permissão para visualizar rascunhos
-    if (projeto.fase_atual === 'RASCUNHO') {
+    if (projeto.status === 'RASCUNHO') {
       if (!usuario) {
         throw new ForbiddenException('Projeto não está publicado');
       }
@@ -522,5 +522,16 @@ export class ProjetosService {
     await this.projetosDao.deletarProjeto(projetoUuid);
 
     return { mensagem: 'Projeto arquivado com sucesso' };
+  }
+
+  /**
+   * Lista projetos do usuário logado (publicados e rascunhos)
+   */
+  async listarMeusProjetos(usuario: any): Promise<{ publicados: any[]; rascunhos: any[] }> {
+    if (!usuario || !usuario.uuid) {
+      throw new ForbiddenException('Usuário não autenticado');
+    }
+
+    return this.projetosDao.listarMeusProjetos(usuario.uuid);
   }
 }
