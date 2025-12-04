@@ -50,18 +50,18 @@ export class ProjetosDao {
 
     // Criar as 4 etapas obrigatórias automaticamente
     const etapas = [
-      { tipo: 'IDEACAO', titulo: 'Ideação', ordem: 1 },
-      { tipo: 'MODELAGEM', titulo: 'Modelagem', ordem: 2 },
-      { tipo: 'PROTOTIPAGEM', titulo: 'Prototipagem', ordem: 3 },
-      { tipo: 'IMPLEMENTACAO', titulo: 'Implementação', ordem: 4 },
+      { nome: 'Ideação', ordem: 1 },
+      { nome: 'Modelagem', ordem: 2 },
+      { nome: 'Prototipagem', ordem: 3 },
+      { nome: 'Implementação', ordem: 4 },
     ];
 
     for (const etapa of etapas) {
       await db.query(
         `INSERT INTO etapas_projeto (
-          projeto_uuid, titulo, tipo_etapa, criado_por_uuid, status, ordem
-        ) VALUES ($1, $2, $3, $4, 'NAO_INICIADA', $5)`,
-        [projetoUuid, etapa.titulo, etapa.tipo, usuarioUuid, etapa.ordem],
+          projeto_uuid, nome, status, ordem
+        ) VALUES ($1, $2, 'PENDENTE', $3)`,
+        [projetoUuid, etapa.nome, etapa.ordem],
       );
     }
 
@@ -233,7 +233,7 @@ export class ProjetosDao {
    */
   async buscarTecnologias(projetoUuid: string): Promise<any[]> {
     const result = await this.pool.query(
-      `SELECT t.uuid, t.nome, t.icone_url, t.cor
+      `SELECT t.uuid, t.nome, t.icone, t.cor_hex as cor
        FROM projetos_tecnologias pt
        INNER JOIN tecnologias t ON pt.tecnologia_uuid = t.uuid
        WHERE pt.projeto_uuid = $1
@@ -287,7 +287,7 @@ export class ProjetosDao {
     let countQuery = `
       SELECT COUNT(*) as total
       FROM projetos p
-      WHERE p.fase_atual NOT IN ('RASCUNHO', 'ARQUIVADO')
+      WHERE p.status = 'PUBLICADO'
     `;
     
     // Query principal com subqueries agregadas para autores, orientadores e tecnologias
@@ -337,7 +337,7 @@ export class ProjetosDao {
       LEFT JOIN usuarios lider_user ON p.lider_uuid = lider_user.uuid
       LEFT JOIN alunos lider_aluno ON lider_aluno.usuario_uuid = lider_user.uuid
       LEFT JOIN cursos c ON lider_aluno.curso_uuid = c.uuid
-      WHERE p.fase_atual NOT IN ('RASCUNHO', 'ARQUIVADO')
+      WHERE p.status = 'PUBLICADO'
     `;
 
     // Aplicar filtros
@@ -493,5 +493,100 @@ export class ProjetosDao {
       'UPDATE projetos SET fase_atual = $1 WHERE uuid = $2',
       ['ARQUIVADO', projetoUuid],
     );
+  }
+
+  /**
+   * Lista projetos do usuário logado (publicados e rascunhos)
+   */
+  async listarMeusProjetos(usuarioUuid: string): Promise<{ publicados: any[]; rascunhos: any[] }> {
+    const query = `
+      SELECT 
+        p.uuid, p.titulo, p.descricao, p.banner_url, p.fase_atual, 
+        p.criado_em, p.data_publicacao, p.status, p.visibilidade,
+        d.nome as departamento, d.cor_hex as departamento_cor,
+        c.nome as curso_nome, c.sigla as curso_sigla,
+        -- Subquery para autores (JSON array)
+        (
+          SELECT COALESCE(json_agg(json_build_object(
+            'nome', u.nome,
+            'papel', pa.papel
+          ) ORDER BY CASE pa.papel WHEN 'LIDER' THEN 1 ELSE 2 END, u.nome), '[]'::json)
+          FROM projetos_alunos pa
+          INNER JOIN alunos a ON pa.aluno_uuid = a.uuid
+          INNER JOIN usuarios u ON a.usuario_uuid = u.uuid
+          WHERE pa.projeto_uuid = p.uuid
+        ) as autores,
+        -- Subquery para orientadores (JSON array)
+        (
+          SELECT COALESCE(json_agg(json_build_object(
+            'nome', u.nome
+          ) ORDER BY u.nome), '[]'::json)
+          FROM projetos_professores pp
+          INNER JOIN professores prof ON pp.professor_uuid = prof.uuid
+          INNER JOIN usuarios u ON prof.usuario_uuid = u.uuid
+          WHERE pp.projeto_uuid = p.uuid
+        ) as orientadores,
+        -- Subquery para tecnologias (JSON array)
+        (
+          SELECT COALESCE(json_agg(json_build_object(
+            'uuid', t.uuid,
+            'nome', t.nome,
+            'icone', t.icone,
+            'cor', t.cor_hex
+          ) ORDER BY t.nome), '[]'::json)
+          FROM projetos_tecnologias pt
+          INNER JOIN tecnologias t ON pt.tecnologia_uuid = t.uuid
+          WHERE pt.projeto_uuid = p.uuid
+        ) as tecnologias,
+        -- Total de autores
+        (SELECT COUNT(*) FROM projetos_alunos pa WHERE pa.projeto_uuid = p.uuid) as total_autores
+      FROM projetos p
+      LEFT JOIN departamentos d ON p.departamento_uuid = d.uuid
+      LEFT JOIN usuarios lider_user ON p.lider_uuid = lider_user.uuid
+      LEFT JOIN alunos lider_aluno ON lider_aluno.usuario_uuid = lider_user.uuid
+      LEFT JOIN cursos c ON lider_aluno.curso_uuid = c.uuid
+      WHERE p.lider_uuid = $1
+        AND p.status != 'ARQUIVADO'
+      ORDER BY p.criado_em DESC
+    `;
+
+    const result = await this.pool.query(query, [usuarioUuid]);
+    
+    const publicados: any[] = [];
+    const rascunhos: any[] = [];
+    
+    for (const row of result.rows) {
+      const projeto = {
+        uuid: row.uuid,
+        titulo: row.titulo,
+        descricao: row.descricao,
+        banner_url: row.banner_url,
+        fase_atual: row.fase_atual,
+        status: row.status,
+        visibilidade: row.visibilidade,
+        criado_em: row.criado_em,
+        data_publicacao: row.data_publicacao,
+        departamento: row.departamento ? {
+          nome: row.departamento,
+          cor_hex: row.departamento_cor,
+        } : null,
+        curso: row.curso_nome ? {
+          nome: row.curso_nome,
+          sigla: row.curso_sigla,
+        } : null,
+        autores: row.autores || [],
+        orientadores: row.orientadores || [],
+        tecnologias: row.tecnologias || [],
+        total_autores: parseInt(row.total_autores || '0'),
+      };
+      
+      if (row.status === 'PUBLICADO') {
+        publicados.push(projeto);
+      } else if (row.status === 'RASCUNHO') {
+        rascunhos.push(projeto);
+      }
+    }
+    
+    return { publicados, rascunhos };
   }
 }
