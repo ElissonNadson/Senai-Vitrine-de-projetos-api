@@ -1,0 +1,267 @@
+{
+  "info": {
+    "name": "Vitrine Senai API",
+    "_postman_id": "vitrine-senai-api",
+    "description": "Collection gerada automaticamente com todas as rotas da API (use {{baseUrl}}).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "GET /auth/google",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/auth/google", "host": ["{{baseUrl}}"], "path": ["auth","google"] }
+          }
+        },
+        {
+          "name": "GET /auth/me",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth","me"] } }
+        },
+        {
+          "name": "POST /auth/refresh",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"token\": \"<refresh_token>\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/auth/refresh", "host": ["{{baseUrl}}"], "path": ["auth","refresh"] }
+          }
+        },
+        {
+          "name": "POST /auth/logout",
+          "request": { "method": "POST", "header": [], "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth","logout"] } }
+        }
+      ]
+    },
+    {
+      "name": "Perfil",
+      "item": [
+        {
+          "name": "POST /perfil/completar/aluno",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"matricula\": \"2025001\",\n  \"curso_uuid\": \"<curso_uuid>\",\n  \"turma_uuid\": \"<turma_uuid>\",\n  \"telefone\": \"(11) 99999-9999\",\n  \"bio\": \"Mini bio do aluno\",\n  \"linkedin_url\": \"https://linkedin.com/in/exemplo\",\n  \"github_url\": \"https://github.com/exemplo\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/perfil/completar/aluno", "host": ["{{baseUrl}}"], "path": ["perfil","completar","aluno"] }
+          }
+        },
+        {
+          "name": "POST /perfil/completar/professor",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"matricula\": \"PROF001\",\n  \"departamento_uuid\": \"<departamento_uuid>\",\n  \"especialidade\": \"Engenharia de Software\",\n  \"telefone\": \"(11) 98888-8888\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/perfil/completar/professor", "host": ["{{baseUrl}}"], "path": ["perfil","completar","professor"] }
+          }
+        },
+        {
+          "name": "PATCH /perfil",
+          "request": {
+            "method": "PATCH",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"bio\": \"Nova bio atualizada\",\n  \"telefone\": \"(11) 97777-7777\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/perfil", "host": ["{{baseUrl}}"], "path": ["perfil"] }
+          }
+        },
+        { "name": "GET /perfil", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/perfil", "host": ["{{baseUrl}}"], "path": ["perfil"] } } }
+      ]
+    },
+    {
+      "name": "Projetos",
+      "item": [
+        {
+          "name": "POST /projetos/passo1",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"titulo\": \"Titulo do projeto exemplo com ao menos 10 chars\",\n  \"descricao\": \"Descrição detalhada do projeto com mais de 100 caracteres...\",\n  \"departamento_uuid\": \"<departamento_uuid>\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/projetos/passo1", "host": ["{{baseUrl}}"], "path": ["projetos","passo1"] }
+          }
+        },
+        {
+          "name": "POST /projetos/:uuid/passo2",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"autores\": [\n    { \"aluno_uuid\": \"<aluno_uuid>\", \"papel\": \"LIDER\" }\n  ]\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/projetos/:uuid/passo2", "host": ["{{baseUrl}}"], "path": ["projetos",":uuid","passo2"] }
+          }
+        },
+        {
+          "name": "POST /projetos/:uuid/passo3",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"orientadores_uuids\": [\"<prof_uuid>\"],\n  \"tecnologias_uuids\": [\"<tec_uuid>\"],\n  \"objetivos\": \"Objetivos do projeto\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/projetos/:uuid/passo3", "host": ["{{baseUrl}}"], "path": ["projetos",":uuid","passo3"] }
+          }
+        },
+        {
+          "name": "POST /projetos/:uuid/passo4",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"banner_url\": \"/uploads/banners/exemplo.jpg\",\n  \"repositorio_url\": \"https://github.com/exemplo/projeto\",\n  \"demo_url\": \"https://exemplo.demo.com\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/projetos/:uuid/passo4", "host": ["{{baseUrl}}"], "path": ["projetos",":uuid","passo4"] }
+          }
+        },
+        { "name": "GET /projetos", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/projetos?limit=10&offset=0", "host": ["{{baseUrl}}"], "path": ["projetos"], "query": [ { "key": "limit", "value": "10" }, { "key": "offset", "value": "0" } ] } } },
+        { "name": "GET /projetos/:uuid", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/projetos/:uuid", "host": ["{{baseUrl}}"], "path": ["projetos",":uuid"] } } },
+        {
+          "name": "PATCH /projetos/:uuid",
+          "request": {
+            "method": "PATCH",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"titulo\": \"Titulo atualizado\",\n  \"descricao\": \"Descrição atualizada do projeto...\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/projetos/:uuid", "host": ["{{baseUrl}}"], "path": ["projetos",":uuid"] }
+          }
+        },
+        { "name": "DELETE /projetos/:uuid", "request": { "method": "DELETE", "header": [], "url": { "raw": "{{baseUrl}}/projetos/:uuid", "host": ["{{baseUrl}}"], "path": ["projetos",":uuid"] } } }
+      ]
+    },
+    {
+      "name": "Etapas",
+      "item": [
+        {
+          "name": "POST /etapas/projeto/:projetoUuid",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"titulo\": \"Etapa 1\",\n  \"descricao\": \"Descrição detalhada da etapa...\",\n  \"tipo_etapa\": \"DESENVOLVIMENTO\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/etapas/projeto/:projetoUuid", "host": ["{{baseUrl}}"], "path": ["etapas","projeto",":projetoUuid"] }
+          }
+        },
+        { "name": "GET /etapas/projeto/:projetoUuid", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/etapas/projeto/:projetoUuid", "host": ["{{baseUrl}}"], "path": ["etapas","projeto",":projetoUuid"] } } },
+        { "name": "GET /etapas/:uuid", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/etapas/:uuid", "host": ["{{baseUrl}}"], "path": ["etapas",":uuid"] } } },
+        {
+          "name": "POST /etapas/:uuid/anexos",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"anexos\": [\n    { \"url\": \"/uploads/anexos/exemplo.pdf\", \"tipo\": \"DOCUMENTO\", \"descricao\": \"Anexo exemplo\" }\n  ]\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/etapas/:uuid/anexos", "host": ["{{baseUrl}}"], "path": ["etapas",":uuid","anexos"] }
+          }
+        },
+        {
+          "name": "PATCH /etapas/:uuid",
+          "request": {
+            "method": "PATCH",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"titulo\": \"Título atualizado\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/etapas/:uuid", "host": ["{{baseUrl}}"], "path": ["etapas",":uuid"] }
+          }
+        },
+        {
+          "name": "POST /etapas/:uuid/feedback",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"APROVADO\",\n  \"comentario\": \"Muito bom, aprovado\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/etapas/:uuid/feedback", "host": ["{{baseUrl}}"], "path": ["etapas",":uuid","feedback"] }
+          }
+        },
+        {
+          "name": "POST /etapas/:uuid/concluir",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"observacoes\": \"Observações sobre conclusão\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/etapas/:uuid/concluir", "host": ["{{baseUrl}}"], "path": ["etapas",":uuid","concluir"] }
+          }
+        },
+        { "name": "DELETE /etapas/:uuid", "request": { "method": "DELETE", "header": [], "url": { "raw": "{{baseUrl}}/etapas/:uuid", "host": ["{{baseUrl}}"], "path": ["etapas",":uuid"] } } },
+        { "name": "DELETE /etapas/anexo/:anexoUuid", "request": { "method": "DELETE", "header": [], "url": { "raw": "{{baseUrl}}/etapas/anexo/:anexoUuid", "host": ["{{baseUrl}}"], "path": ["etapas","anexo",":anexoUuid"] } } }
+      ]
+    },
+    {
+      "name": "Upload",
+      "item": [
+        {
+          "name": "POST /upload/banner (form-data file)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "" }
+              ]
+            },
+            "url": { "raw": "{{baseUrl}}/upload/banner", "host": ["{{baseUrl}}"], "path": ["upload","banner"] }
+          }
+        },
+        {
+          "name": "POST /upload/avatar (form-data file)",
+          "request": { "method": "POST", "header": [], "body": { "mode": "formdata", "formdata": [ { "key": "file", "type": "file", "src": "" } ] }, "url": { "raw": "{{baseUrl}}/upload/avatar", "host": ["{{baseUrl}}"], "path": ["upload","avatar"] } }
+        },
+        {
+          "name": "POST /upload/anexo (form-data file + query tipo)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": { "mode": "formdata", "formdata": [ { "key": "file", "type": "file", "src": "" } ] },
+            "url": { "raw": "{{baseUrl}}/upload/anexo?tipo=DOCUMENTO", "host": ["{{baseUrl}}"], "path": ["upload","anexo"], "query": [ { "key": "tipo", "value": "DOCUMENTO" } ] }
+          }
+        },
+        { "name": "GET /upload/tipos", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/upload/tipos", "host": ["{{baseUrl}}"], "path": ["upload","tipos"] } } }
+      ]
+    },
+    {
+      "name": "Notificacoes",
+      "item": [
+        { "name": "GET /notificacoes", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/notificacoes", "host": ["{{baseUrl}}"], "path": ["notificacoes"] } } },
+        { "name": "GET /notificacoes/nao-lidas/contar", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/notificacoes/nao-lidas/contar", "host": ["{{baseUrl}}"], "path": ["notificacoes","nao-lidas","contar"] } } },
+        { "name": "POST /notificacoes/:uuid/marcar-lida", "request": { "method": "POST", "header": [], "url": { "raw": "{{baseUrl}}/notificacoes/:uuid/marcar-lida", "host": ["{{baseUrl}}"], "path": ["notificacoes",":uuid","marcar-lida"] } } },
+        { "name": "POST /notificacoes/marcar-todas-lidas", "request": { "method": "POST", "header": [], "url": { "raw": "{{baseUrl}}/notificacoes/marcar-todas-lidas", "host": ["{{baseUrl}}"], "path": ["notificacoes","marcar-todas-lidas"] } } },
+        { "name": "DELETE /notificacoes/:uuid", "request": { "method": "DELETE", "header": [], "url": { "raw": "{{baseUrl}}/notificacoes/:uuid", "host": ["{{baseUrl}}"], "path": ["notificacoes",":uuid"] } } }
+      ]
+    },
+    {
+      "name": "Progressao",
+      "item": [
+        { "name": "GET /progressao/verificar/:projetoUuid", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/progressao/verificar/:projetoUuid", "host": ["{{baseUrl}}"], "path": ["progressao","verificar",":projetoUuid"] } } },
+        {
+          "name": "POST /progressao/forcar/:projetoUuid",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"novaFase\": \"TESTE\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/progressao/forcar/:projetoUuid", "host": ["{{baseUrl}}"], "path": ["progressao","forcar",":projetoUuid"] }
+          }
+        },
+        { "name": "POST /progressao/automatica/:projetoUuid", "request": { "method": "POST", "header": [], "url": { "raw": "{{baseUrl}}/progressao/automatica/:projetoUuid", "host": ["{{baseUrl}}"], "path": ["progressao","automatica",":projetoUuid"] } } },
+        { "name": "GET /progressao/historico/:projetoUuid", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/progressao/historico/:projetoUuid", "host": ["{{baseUrl}}"], "path": ["progressao","historico",":projetoUuid"] } } },
+        {
+          "name": "POST /progressao/transferir-lideranca/:projetoUuid",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"novoLiderAlunoUuid\": \"<aluno_uuid>\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/progressao/transferir-lideranca/:projetoUuid", "host": ["{{baseUrl}}"], "path": ["progressao","transferir-lideranca",":projetoUuid"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cursos e Turmas",
+      "item": [
+        { "name": "GET /cursos", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/cursos", "host": ["{{baseUrl}}"], "path": ["cursos"] } } },
+        { "name": "GET /cursos/:uuid", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/cursos/:uuid", "host": ["{{baseUrl}}"], "path": ["cursos",":uuid"] } } },
+        { "name": "GET /cursos/sigla/:sigla", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/cursos/sigla/:sigla", "host": ["{{baseUrl}}"], "path": ["cursos","sigla",":sigla"] } } },
+        { "name": "GET /turmas", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/turmas", "host": ["{{baseUrl}}"], "path": ["turmas"] } } },
+        { "name": "GET /turmas/:uuid", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/turmas/:uuid", "host": ["{{baseUrl}}"], "path": ["turmas",":uuid"] } } },
+        { "name": "GET /turmas/codigo/:codigo", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/turmas/codigo/:codigo", "host": ["{{baseUrl}}"], "path": ["turmas","codigo",":codigo"] } } }
+      ]
+    }
+  ]
+}

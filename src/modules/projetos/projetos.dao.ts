@@ -33,14 +33,15 @@ export class ProjetosDao {
     client?: PoolClient,
   ): Promise<string> {
     const db = client || this.pool;
+    console.log(alunoUuid);
 
     const result = await db.query(
       `INSERT INTO projetos (
         titulo, descricao, departamento_uuid, 
-        criado_por_uuid, fase_atual
-      ) VALUES ($1, $2, $3, $4, 'RASCUNHO')
+        criado_por_uuid, lider_uuid, fase_atual
+      ) VALUES ($1, $2, $3, $4, $5, 'IDEACAO')
       RETURNING uuid`,
-      [dados.titulo, dados.descricao, dados.departamento_uuid, alunoUuid],
+      [dados.titulo, dados.descricao, dados.departamento_uuid, alunoUuid, alunoUuid],
     );
 
     return result.rows[0].uuid;
