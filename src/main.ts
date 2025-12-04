@@ -64,7 +64,8 @@ async function bootstrap() {
     legacyHeaders: false, // Desativa os headers `X-RateLimit-*`
   });
 
-  app.use(expressSanitizer());
+  // Sanitizer desabilitado temporariamente - pode estar removendo campos
+  // app.use(expressSanitizer());
 
   // Aplica o limitador
   app.use(limiter);
