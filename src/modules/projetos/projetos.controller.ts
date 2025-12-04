@@ -103,6 +103,15 @@ export class ProjetosController {
   }
 
   /**
+   * GET /projetos/meus
+   * Lista projetos do usuário logado (publicados e rascunhos)
+   */
+  @Get('meus')
+  async listarMeusProjetos(@CurrentUser() usuario: any) {
+    return this.projetosService.listarMeusProjetos(usuario);
+  }
+
+  /**
    * GET /projetos/:uuid
    * Busca projeto por UUID
    */
