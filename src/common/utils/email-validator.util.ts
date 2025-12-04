@@ -11,9 +11,10 @@ const REGEX_EMAIL_ALUNO = /^[a-zA-Z0-9._-]+@ba\.estudante\.senai\.br$/;
 
 /**
  * Regex para validação de email de professores/admin SENAI-BA
- * Domínio permitido: @ba.senai.br
+ * Domínios permitidos: @ba.senai.br e @ba.docente.senai.br
  */
 const REGEX_EMAIL_PROFESSOR = /^[a-zA-Z0-9._-]+@ba\.senai\.br$/;
+const REGEX_EMAIL_DOCENTE = /^[a-zA-Z0-9._-]+@ba\.docente\.senai\.br$/;
 
 /**
  * Domínios bloqueados (emails pessoais e outros estados)
@@ -89,7 +90,7 @@ export function validarEmailProfessor(email: string): boolean {
   }
   
   const emailLowerCase = email.toLowerCase().trim();
-  return REGEX_EMAIL_PROFESSOR.test(emailLowerCase);
+  return REGEX_EMAIL_PROFESSOR.test(emailLowerCase) || REGEX_EMAIL_DOCENTE.test(emailLowerCase);
 }
 
 /**

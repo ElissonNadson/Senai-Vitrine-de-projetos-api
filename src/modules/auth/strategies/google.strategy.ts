@@ -43,7 +43,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     if (!validarEmailSenai(email)) {
       return done(
         new UnauthorizedException(
-          'Email inválido. Use um email SENAI-BA (@ba.estudante.senai.br ou @ba.senai.br)',
+          'Email inválido. Use um email SENAI-BA (@ba.estudante.senai.br, @ba.docente.senai.br ou @ba.senai.br)',
         ),
         null,
       );
