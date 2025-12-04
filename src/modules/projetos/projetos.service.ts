@@ -64,10 +64,10 @@ export class ProjetosService {
 
       const alunoUuid = alunoResult.rows[0].uuid;
 
-      // Cria rascunho
+      // Cria rascunho (passa usuario.uuid para as FKs criado_por_uuid e lider_uuid)
       const projetoUuid = await this.projetosDao.criarRascunho(
         dados,
-        alunoUuid,
+        usuario.uuid,
         client,
       );
 
@@ -380,9 +380,15 @@ export class ProjetosService {
   }
 
   /**
-   * Lista projetos com filtros
+   * Lista projetos com filtros e paginação
    */
-  async listarProjetos(filtros: any): Promise<any[]> {
+  async listarProjetos(filtros: any): Promise<{
+    projetos: any[];
+    total: number;
+    pagina: number;
+    limite: number;
+    totalPaginas: number;
+  }> {
     return this.projetosDao.listarProjetos(filtros);
   }
 

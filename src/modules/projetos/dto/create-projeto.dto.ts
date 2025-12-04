@@ -30,8 +30,8 @@ export class Passo1ProjetoDto {
   descricao: string;
 
   @IsUUID('4', { message: 'UUID do departamento inválido' })
-  @IsNotEmpty({ message: 'Departamento é obrigatório' })
-  departamento_uuid: string;
+  @IsOptional()
+  departamento_uuid?: string;
 }
 
 /**
@@ -89,8 +89,8 @@ export class Passo3ProjetoDto {
  */
 export class Passo4ProjetoDto {
   @IsString()
-  @IsNotEmpty({ message: 'Caminho do banner é obrigatório' })
-  banner_url: string;
+  @IsOptional()
+  banner_url?: string;
 
   @IsString()
   @IsOptional()

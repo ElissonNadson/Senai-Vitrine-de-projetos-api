@@ -146,6 +146,18 @@ export class PerfilService {
     dto: AtualizarPerfilDto,
     user: JwtPayload,
   ): Promise<any> {
+    // Log para debug
+    console.log('=== DADOS RECEBIDOS NO DTO ===');
+    console.log('user.uuid:', user?.uuid);
+    console.log('user.tipo:', user?.tipo);
+    console.log('dto completo:', JSON.stringify(dto, null, 2));
+    console.log('dto.cep:', dto.cep);
+    console.log('dto.logradouro:', dto.logradouro);
+    console.log('dto.bairro:', dto.bairro);
+    console.log('dto.cidade:', dto.cidade);
+    console.log('dto.estado:', dto.estado);
+    console.log('==============================');
+    
     const client = await this.perfilDao.getClient();
 
     try {
@@ -197,6 +209,10 @@ export class PerfilService {
     try {
       let perfil;
 
+      console.log('=== BUSCANDO PERFIL ===');
+      console.log('user.uuid:', user?.uuid);
+      console.log('user.tipo:', user?.tipo);
+
       if (user.tipo === 'ALUNO') {
         perfil = await this.perfilDao.buscarAluno(client, user.uuid);
       } else if (user.tipo === 'PROFESSOR' || user.tipo === 'ADMIN') {
@@ -205,11 +221,17 @@ export class PerfilService {
         throw new BadRequestException('Tipo de usuário inválido');
       }
 
+      console.log('Perfil encontrado:', perfil ? 'sim' : 'não');
+      console.log('==============================');
+
       if (!perfil) {
         throw new NotFoundException('Perfil não encontrado');
       }
 
       return perfil;
+    } catch (error) {
+      console.error('Erro ao buscar perfil:', error.message);
+      throw error;
     } finally {
       client.release();
     }

@@ -26,25 +26,46 @@ export class ProjetosDao {
 
   /**
    * Cria rascunho inicial do projeto (Passo 1)
+   * @param dados - titulo, descricao, departamento_uuid (opcional)
+   * @param usuarioUuid - UUID do usuário (tabela usuarios)
    */
   async criarRascunho(
     dados: any,
-    alunoUuid: string,
+    usuarioUuid: string,
     client?: PoolClient,
   ): Promise<string> {
     const db = client || this.pool;
-    console.log(alunoUuid);
 
+    // Criar projeto
     const result = await db.query(
       `INSERT INTO projetos (
         titulo, descricao, departamento_uuid, 
-        criado_por_uuid, lider_uuid, fase_atual
-      ) VALUES ($1, $2, $3, $4, $5, 'IDEACAO')
+        criado_por_uuid, lider_uuid, fase_atual, status
+      ) VALUES ($1, $2, $3, $4, $4, 'IDEACAO', 'RASCUNHO')
       RETURNING uuid`,
-      [dados.titulo, dados.descricao, dados.departamento_uuid, alunoUuid, alunoUuid],
+      [dados.titulo, dados.descricao, dados.departamento_uuid || null, usuarioUuid],
     );
 
-    return result.rows[0].uuid;
+    const projetoUuid = result.rows[0].uuid;
+
+    // Criar as 4 etapas obrigatórias automaticamente
+    const etapas = [
+      { tipo: 'IDEACAO', titulo: 'Ideação', ordem: 1 },
+      { tipo: 'MODELAGEM', titulo: 'Modelagem', ordem: 2 },
+      { tipo: 'PROTOTIPAGEM', titulo: 'Prototipagem', ordem: 3 },
+      { tipo: 'IMPLEMENTACAO', titulo: 'Implementação', ordem: 4 },
+    ];
+
+    for (const etapa of etapas) {
+      await db.query(
+        `INSERT INTO etapas_projeto (
+          projeto_uuid, titulo, tipo_etapa, criado_por_uuid, status, ordem
+        ) VALUES ($1, $2, $3, $4, 'NAO_INICIADA', $5)`,
+        [projetoUuid, etapa.titulo, etapa.tipo, usuarioUuid, etapa.ordem],
+      );
+    }
+
+    return projetoUuid;
   }
 
   /**
@@ -132,15 +153,17 @@ export class ProjetosDao {
   ): Promise<void> {
     const db = client || this.pool;
 
+    // Banner é opcional
+    const bannerUrl = dados.banner_url || null;
+
     await db.query(
       `UPDATE projetos 
-       SET banner_url = $1, 
-           repositorio_url = $2, 
-           demo_url = $3,
-           fase_atual = 'PLANEJAMENTO',
-           publicado_em = CURRENT_TIMESTAMP
-       WHERE uuid = $4`,
-      [dados.banner_url, dados.repositorio_url, dados.demo_url, projetoUuid],
+       SET banner_url = COALESCE($1, banner_url), 
+           fase_atual = 'IDEACAO',
+           status = 'PUBLICADO',
+           data_publicacao = CURRENT_TIMESTAMP
+       WHERE uuid = $2`,
+      [bannerUrl, projetoUuid],
     );
   }
 
@@ -150,7 +173,7 @@ export class ProjetosDao {
   async buscarPorUuid(uuid: string): Promise<any> {
     const result = await this.pool.query(
       `SELECT p.*, 
-              d.nome as departamento_nome, d.cor as departamento_cor,
+              d.nome as departamento_nome, d.cor_hex as departamento_cor,
               u.nome as criado_por_nome, u.email as criado_por_email
        FROM projetos p
        LEFT JOIN departamentos d ON p.departamento_uuid = d.uuid
@@ -252,61 +275,141 @@ export class ProjetosDao {
   }
 
   /**
-   * Lista projetos com filtros
+   * Lista projetos com filtros e paginação
    */
-  async listarProjetos(filtros: any): Promise<any[]> {
+  async listarProjetos(filtros: any): Promise<{ projetos: any[]; total: number; pagina: number; limite: number; totalPaginas: number }> {
     const params: any[] = [];
+    const limit = filtros.limit ? parseInt(filtros.limit) : 10;
+    const offset = filtros.offset ? parseInt(filtros.offset) : 0;
+    const pagina = Math.floor(offset / limit) + 1;
+    
+    // Query para contar total
+    let countQuery = `
+      SELECT COUNT(*) as total
+      FROM projetos p
+      WHERE p.fase_atual NOT IN ('RASCUNHO', 'ARQUIVADO')
+    `;
+    
+    // Query principal com subqueries agregadas para autores, orientadores e tecnologias
     let query = `
-      SELECT p.uuid, p.titulo, p.descricao, p.banner_url, p.fase_atual, 
-             p.criado_em, p.publicado_em,
-             d.nome as departamento, d.cor as departamento_cor,
-             (SELECT COUNT(*) FROM projetos_alunos pa WHERE pa.projeto_uuid = p.uuid) as total_autores
+      SELECT 
+        p.uuid, p.titulo, p.descricao, p.banner_url, p.fase_atual, 
+        p.criado_em, p.data_publicacao, p.status, p.visibilidade,
+        d.nome as departamento, d.cor_hex as departamento_cor,
+        c.nome as curso_nome, c.sigla as curso_sigla,
+        -- Subquery para autores (JSON array)
+        (
+          SELECT COALESCE(json_agg(json_build_object(
+            'nome', u.nome,
+            'papel', pa.papel
+          ) ORDER BY CASE pa.papel WHEN 'LIDER' THEN 1 ELSE 2 END, u.nome), '[]'::json)
+          FROM projetos_alunos pa
+          INNER JOIN alunos a ON pa.aluno_uuid = a.uuid
+          INNER JOIN usuarios u ON a.usuario_uuid = u.uuid
+          WHERE pa.projeto_uuid = p.uuid
+        ) as autores,
+        -- Subquery para orientadores (JSON array)
+        (
+          SELECT COALESCE(json_agg(json_build_object(
+            'nome', u.nome
+          ) ORDER BY u.nome), '[]'::json)
+          FROM projetos_professores pp
+          INNER JOIN professores prof ON pp.professor_uuid = prof.uuid
+          INNER JOIN usuarios u ON prof.usuario_uuid = u.uuid
+          WHERE pp.projeto_uuid = p.uuid
+        ) as orientadores,
+        -- Subquery para tecnologias (JSON array)
+        (
+          SELECT COALESCE(json_agg(json_build_object(
+            'uuid', t.uuid,
+            'nome', t.nome,
+            'icone', t.icone,
+            'cor', t.cor_hex
+          ) ORDER BY t.nome), '[]'::json)
+          FROM projetos_tecnologias pt
+          INNER JOIN tecnologias t ON pt.tecnologia_uuid = t.uuid
+          WHERE pt.projeto_uuid = p.uuid
+        ) as tecnologias,
+        -- Total de autores
+        (SELECT COUNT(*) FROM projetos_alunos pa WHERE pa.projeto_uuid = p.uuid) as total_autores
       FROM projetos p
       LEFT JOIN departamentos d ON p.departamento_uuid = d.uuid
-      WHERE p.fase_atual != 'RASCUNHO'
+      LEFT JOIN usuarios lider_user ON p.lider_uuid = lider_user.uuid
+      LEFT JOIN alunos lider_aluno ON lider_aluno.usuario_uuid = lider_user.uuid
+      LEFT JOIN cursos c ON lider_aluno.curso_uuid = c.uuid
+      WHERE p.fase_atual NOT IN ('RASCUNHO', 'ARQUIVADO')
     `;
 
+    // Aplicar filtros
+    const countParams: any[] = [];
+    
     if (filtros.departamento_uuid) {
       params.push(filtros.departamento_uuid);
+      countParams.push(filtros.departamento_uuid);
       query += ` AND p.departamento_uuid = $${params.length}`;
+      countQuery += ` AND p.departamento_uuid = $${countParams.length}`;
     }
 
     if (filtros.fase) {
       params.push(filtros.fase);
+      countParams.push(filtros.fase);
       query += ` AND p.fase_atual = $${params.length}`;
+      countQuery += ` AND p.fase_atual = $${countParams.length}`;
     }
 
     if (filtros.tecnologia_uuid) {
       params.push(filtros.tecnologia_uuid);
+      countParams.push(filtros.tecnologia_uuid);
       query += ` AND EXISTS (
         SELECT 1 FROM projetos_tecnologias pt 
         WHERE pt.projeto_uuid = p.uuid 
         AND pt.tecnologia_uuid = $${params.length}
       )`;
+      countQuery += ` AND EXISTS (
+        SELECT 1 FROM projetos_tecnologias pt 
+        WHERE pt.projeto_uuid = p.uuid 
+        AND pt.tecnologia_uuid = $${countParams.length}
+      )`;
     }
 
     if (filtros.busca) {
       params.push(`%${filtros.busca}%`);
+      countParams.push(`%${filtros.busca}%`);
       query += ` AND (
         LOWER(p.titulo) LIKE LOWER($${params.length}) OR
         LOWER(p.descricao) LIKE LOWER($${params.length})
       )`;
+      countQuery += ` AND (
+        LOWER(p.titulo) LIKE LOWER($${countParams.length}) OR
+        LOWER(p.descricao) LIKE LOWER($${countParams.length})
+      )`;
     }
 
-    query += ' ORDER BY p.publicado_em DESC';
+    query += ' ORDER BY p.data_publicacao DESC NULLS LAST, p.criado_em DESC';
 
-    if (filtros.limit) {
-      params.push(filtros.limit);
-      query += ` LIMIT $${params.length}`;
-    }
+    // Adicionar paginação
+    params.push(limit);
+    query += ` LIMIT $${params.length}`;
+    
+    params.push(offset);
+    query += ` OFFSET $${params.length}`;
 
-    if (filtros.offset) {
-      params.push(filtros.offset);
-      query += ` OFFSET $${params.length}`;
-    }
+    // Executar queries
+    const [countResult, dataResult] = await Promise.all([
+      this.pool.query(countQuery, countParams),
+      this.pool.query(query, params)
+    ]);
 
-    const result = await this.pool.query(query, params);
-    return result.rows;
+    const total = parseInt(countResult.rows[0]?.total || '0');
+    const totalPaginas = Math.ceil(total / limit);
+
+    return {
+      projetos: dataResult.rows,
+      total,
+      pagina,
+      limite: limit,
+      totalPaginas
+    };
   }
 
   /**

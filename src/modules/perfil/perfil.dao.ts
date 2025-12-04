@@ -23,8 +23,7 @@ export class PerfilDao {
         u.email,
         c.nome as curso_nome,
         c.sigla as curso_sigla,
-        t.codigo as turma_codigo,
-        t.nome as turma_nome
+        t.codigo as turma_codigo
        FROM alunos a
        LEFT JOIN usuarios u ON a.usuario_uuid = u.uuid
        LEFT JOIN cursos c ON a.curso_uuid = c.uuid
