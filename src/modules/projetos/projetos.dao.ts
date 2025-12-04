@@ -153,17 +153,21 @@ export class ProjetosDao {
   ): Promise<void> {
     const db = client || this.pool;
 
-    // Banner é opcional
+    // Campos opcionais
     const bannerUrl = dados.banner_url || null;
+    const repositorioUrl = dados.repositorio_url || null;
+    const demoUrl = dados.demo_url || null;
 
     await db.query(
       `UPDATE projetos 
        SET banner_url = COALESCE($1, banner_url), 
+           repositorio_url = COALESCE($2, repositorio_url),
+           demo_url = COALESCE($3, demo_url),
            fase_atual = 'IDEACAO',
            status = 'PUBLICADO',
            data_publicacao = CURRENT_TIMESTAMP
-       WHERE uuid = $2`,
-      [bannerUrl, projetoUuid],
+       WHERE uuid = $4`,
+      [bannerUrl, repositorioUrl, demoUrl, projetoUuid],
     );
   }
 
@@ -295,6 +299,7 @@ export class ProjetosDao {
       SELECT 
         p.uuid, p.titulo, p.descricao, p.banner_url, p.fase_atual, 
         p.criado_em, p.data_publicacao, p.status, p.visibilidade,
+        p.itinerario, p.lab_maker, p.participou_saga,
         d.nome as departamento, d.cor_hex as departamento_cor,
         c.nome as curso_nome, c.sigla as curso_sigla,
         -- Subquery para autores (JSON array)
@@ -459,6 +464,21 @@ export class ProjetosDao {
     if (dados.demo_url !== undefined) {
       campos.push(`demo_url = $${paramIndex++}`);
       valores.push(dados.demo_url);
+    }
+
+    if (dados.itinerario !== undefined) {
+      campos.push(`itinerario = $${paramIndex++}`);
+      valores.push(dados.itinerario);
+    }
+
+    if (dados.lab_maker !== undefined) {
+      campos.push(`lab_maker = $${paramIndex++}`);
+      valores.push(dados.lab_maker);
+    }
+
+    if (dados.participou_saga !== undefined) {
+      campos.push(`participou_saga = $${paramIndex++}`);
+      valores.push(dados.participou_saga);
     }
 
     if (campos.length === 0) {

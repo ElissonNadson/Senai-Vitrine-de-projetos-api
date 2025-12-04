@@ -344,6 +344,14 @@ export class EtapasService {
       );
     }
 
+    // Verifica se há pelo menos 1 anexo
+    const totalAnexos = await this.etapasDao.contarAnexos(etapaUuid);
+    if (totalAnexos === 0) {
+      throw new BadRequestException(
+        'É necessário ter pelo menos um documento anexado para concluir esta etapa.',
+      );
+    }
+
     // Verifica permissão (autor)
     let temPermissao = false;
 
