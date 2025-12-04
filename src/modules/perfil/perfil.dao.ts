@@ -17,8 +17,16 @@ export class PerfilDao {
    */
   async buscarAluno(client: PoolClient, usuarioUuid: string): Promise<any> {
     const result = await client.query(
-      `SELECT a.*, c.nome as curso_nome, t.codigo as turma_codigo
+      `SELECT 
+        a.*,
+        u.nome,
+        u.email,
+        c.nome as curso_nome,
+        c.sigla as curso_sigla,
+        t.codigo as turma_codigo,
+        t.nome as turma_nome
        FROM alunos a
+       LEFT JOIN usuarios u ON a.usuario_uuid = u.uuid
        LEFT JOIN cursos c ON a.curso_uuid = c.uuid
        LEFT JOIN turmas t ON a.turma_uuid = t.uuid
        WHERE a.usuario_uuid = $1`,
@@ -32,8 +40,13 @@ export class PerfilDao {
    */
   async buscarProfessor(client: PoolClient, usuarioUuid: string): Promise<any> {
     const result = await client.query(
-      `SELECT p.*, d.nome as departamento_nome
+      `SELECT 
+        p.*,
+        u.nome,
+        u.email,
+        d.nome as departamento_nome
        FROM professores p
+       LEFT JOIN usuarios u ON p.usuario_uuid = u.uuid
        LEFT JOIN departamentos d ON p.departamento_uuid = d.uuid
        WHERE p.usuario_uuid = $1`,
       [usuarioUuid],
@@ -59,8 +72,18 @@ export class PerfilDao {
            linkedin_url = COALESCE($6, linkedin_url),
            github_url = COALESCE($7, github_url),
            portfolio_url = COALESCE($8, portfolio_url),
+           instagram_url = COALESCE($9, instagram_url),
+           tiktok_url = COALESCE($10, tiktok_url),
+           facebook_url = COALESCE($11, facebook_url),
+           cep = COALESCE($12, cep),
+           logradouro = COALESCE($13, logradouro),
+           numero = COALESCE($14, numero),
+           complemento = COALESCE($15, complemento),
+           bairro = COALESCE($16, bairro),
+           cidade = COALESCE($17, cidade),
+           estado = COALESCE($18, estado),
            atualizado_em = NOW()
-       WHERE usuario_uuid = $9
+       WHERE usuario_uuid = $19
        RETURNING *`,
       [
         dados.matricula,
@@ -71,6 +94,16 @@ export class PerfilDao {
         dados.linkedin_url,
         dados.github_url,
         dados.portfolio_url,
+        dados.instagram_url,
+        dados.tiktok_url,
+        dados.facebook_url,
+        dados.cep,
+        dados.logradouro,
+        dados.numero,
+        dados.complemento,
+        dados.bairro,
+        dados.cidade,
+        dados.estado,
         usuarioUuid,
       ],
     );
