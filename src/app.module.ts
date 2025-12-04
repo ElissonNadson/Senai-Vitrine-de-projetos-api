@@ -4,6 +4,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { PerfilModule } from './modules/perfil/perfil.module';
 import { CursosModule } from './modules/cursos/cursos.module';
 import { TurmasModule } from './modules/turmas/turmas.module';
+import { DepartamentosModule } from './modules/departamentos/departamentos.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ProjetosModule } from './modules/projetos/projetos.module';
 import { UploadModule } from './modules/upload/upload.module';
@@ -42,6 +43,7 @@ import { JwtModule } from '@nestjs/jwt';
     PerfilModule,
     CursosModule,
     TurmasModule,
+    DepartamentosModule,
     DashboardModule,
     ProjetosModule,
     UploadModule,
@@ -64,6 +66,8 @@ export class AppModule implements NestModule {
         { path: 'cursos/(.*)', method: RequestMethod.GET },
         { path: 'turmas', method: RequestMethod.GET },
         { path: 'turmas/(.*)', method: RequestMethod.GET },
+        { path: 'departamentos', method: RequestMethod.GET },
+        { path: 'departamentos/(.*)', method: RequestMethod.GET },
       )
       .forRoutes('*');
 
