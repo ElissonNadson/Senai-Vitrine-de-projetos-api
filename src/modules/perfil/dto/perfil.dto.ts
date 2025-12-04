@@ -99,37 +99,41 @@ export class AtualizarPerfilDto {
   bio?: string;
 
   @IsString()
-  @Matches(/^\(\d{2}\) \d{4,5}-\d{4}$/, {
-    message: 'Telefone deve estar no formato (XX) XXXXX-XXXX',
-  })
   @IsOptional()
   telefone?: string;
 
-  @IsUrl({}, { message: 'LinkedIn URL inválida' })
+  @IsString()
+  @MaxLength(255)
   @IsOptional()
   linkedin_url?: string;
 
-  @IsUrl({}, { message: 'GitHub URL inválida' })
+  @IsString()
+  @MaxLength(255)
   @IsOptional()
   github_url?: string;
 
-  @IsUrl({}, { message: 'Portfolio URL inválida' })
+  @IsString()
+  @MaxLength(255)
   @IsOptional()
   portfolio_url?: string;
 
-  @IsUrl({}, { message: 'Instagram URL inválida' })
+  @IsString()
+  @MaxLength(255)
   @IsOptional()
   instagram_url?: string;
 
-  @IsUrl({}, { message: 'TikTok URL inválida' })
+  @IsString()
+  @MaxLength(255)
   @IsOptional()
   tiktok_url?: string;
 
-  @IsUrl({}, { message: 'Facebook URL inválida' })
+  @IsString()
+  @MaxLength(255)
   @IsOptional()
   facebook_url?: string;
 
-  @IsUrl({}, { message: 'Lattes URL inválida' })
+  @IsString()
+  @MaxLength(255)
   @IsOptional()
   lattes_url?: string;
 
@@ -140,7 +144,7 @@ export class AtualizarPerfilDto {
 
   // Campos de endereço
   @IsString()
-  @MaxLength(9)
+  @MaxLength(10)
   @IsOptional()
   cep?: string;
 
