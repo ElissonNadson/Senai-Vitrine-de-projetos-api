@@ -1,24 +1,35 @@
 version: '2.0'
 services:
-  vitrine-senai:
-    image: vitrine-senai:v2
-    container_name: vitrine-senai
+  vitrine-senai-api:
+    image: vitrine-senai-api:v2
+    container_name: vitrine-senai-api
     build:
       context: ./
       dockerfile: Dockerfile
     volumes:
       - ./logs:/usr/src/app/logs
       - ./access:/usr/src/app/access
+      - ./uploads:/usr/src/app/uploads
     ports:
-      - 3107:511
+      - 3000:3000
     env_file:
       - ./.env
+    networks:
+      - vitrine-senai-network
+    restart: unless-stopped
+  
+  vitrine-senai-redis:
+    image: redis:latest
+    container_name: vitrine-senai-redis
+    ports:
+      - 6379:6379
     networks:
       - vitrine-senai-network
     restart: unless-stopped
 
 networks:
   vitrine-senai-network:
+    name: vitrine-senai-network
     driver: bridge
     ipam:
       driver: default

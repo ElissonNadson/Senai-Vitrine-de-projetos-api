@@ -42,28 +42,32 @@ export class AuthController {
 
     // Valida e cria/atualiza usuário
     const authResponse = await this.authService.validarCallback(googleUser);
-    const response = {
-      usuario: authResponse.usuario,
-      primeiroAcesso: authResponse.usuario.primeiroAcesso,
+
+    // Prepara dados completos para o frontend
+    const userData = {
+      accessToken: authResponse.token,
+      usuariosEntity: {
+        uuid: authResponse.usuario.uuid,
+        nome: authResponse.usuario.nome,
+        email: authResponse.usuario.email,
+        tipo: authResponse.usuario.tipo,
+        avatarUrl: authResponse.usuario.avatarUrl,
+        primeiroAcesso: authResponse.usuario.primeiroAcesso,
+      },
     };
 
     res.cookie('token', authResponse.token, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'Lax',
     });
 
-    // Retorna token JWT (ou redireciona para frontend com token)
-    if (process.env.NODE_ENV === 'production') {
-      // Em produção, redireciona para frontend com token
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-      return res.redirect(
-        `${frontendUrl}/auth/callback?primeiroAcesso=${authResponse.usuario.primeiroAcesso}`,
-      );
-    } else {
-      // Em desenvolvimento, retorna JSON
-      return res.status(HttpStatus.OK).json(response);
-    }
+    // Sempre redireciona para frontend com dados codificados
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const encodedData = encodeURIComponent(JSON.stringify(userData));
+    return res.redirect(
+      `${frontendUrl}/auth/google/callback?data=${encodedData}`,
+    );
   }
 
   /**
