@@ -117,6 +117,18 @@ export class AtualizarPerfilDto {
   @IsOptional()
   portfolio_url?: string;
 
+  @IsUrl({}, { message: 'Instagram URL inválida' })
+  @IsOptional()
+  instagram_url?: string;
+
+  @IsUrl({}, { message: 'TikTok URL inválida' })
+  @IsOptional()
+  tiktok_url?: string;
+
+  @IsUrl({}, { message: 'Facebook URL inválida' })
+  @IsOptional()
+  facebook_url?: string;
+
   @IsUrl({}, { message: 'Lattes URL inválida' })
   @IsOptional()
   lattes_url?: string;
@@ -125,4 +137,40 @@ export class AtualizarPerfilDto {
   @MaxLength(255)
   @IsOptional()
   especialidade?: string;
+
+  // Campos de endereço
+  @IsString()
+  @MaxLength(9)
+  @IsOptional()
+  cep?: string;
+
+  @IsString()
+  @MaxLength(255)
+  @IsOptional()
+  logradouro?: string;
+
+  @IsString()
+  @MaxLength(20)
+  @IsOptional()
+  numero?: string;
+
+  @IsString()
+  @MaxLength(100)
+  @IsOptional()
+  complemento?: string;
+
+  @IsString()
+  @MaxLength(100)
+  @IsOptional()
+  bairro?: string;
+
+  @IsString()
+  @MaxLength(100)
+  @IsOptional()
+  cidade?: string;
+
+  @IsString()
+  @MaxLength(2)
+  @IsOptional()
+  estado?: string;
 }
