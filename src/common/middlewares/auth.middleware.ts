@@ -11,11 +11,32 @@ export class AuthMiddleware implements NestMiddleware {
     const originalUrl = (req as any).originalUrl || req.url || req.path;
     const isAuthRoute =
       originalUrl === '/auth/login' || originalUrl.startsWith('/auth/google');
+    
+    // Rotas que permitem acesso opcional (com ou sem token)
+    // /projetos/:uuid (GET) - permite visualizar projetos públicos sem login
+    const isOptionalAuthRoute = 
+      req.method === 'GET' && 
+      /^\/projetos\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(originalUrl.split('?')[0]);
       
     const token = this.extractTokenFromHeader(req);
 
     // Se a rota é de autenticação, não requer validação de token
     if (isAuthRoute) {
+      return next();
+    }
+
+    // Rotas com autenticação opcional - tenta extrair usuário se houver token
+    if (isOptionalAuthRoute) {
+      if (token && token !== process.env.SUPER_TOKEN) {
+        try {
+          await this.jwtService.verifyAsync(token, {
+            secret: process.env.JWT_SECRET,
+          });
+          req['user'] = await this.jwtService.decode(token);
+        } catch {
+          // Token inválido, mas rota é opcional - continua sem usuário
+        }
+      }
       return next();
     }
 
@@ -41,7 +62,7 @@ export class AuthMiddleware implements NestMiddleware {
 
   private extractTokenFromHeader(request: Request): string | undefined {
     // Tenta obter o token de dois lugares: do cabeçalho Authorization ou do cookie
-    const tokenFromCookie = request.cookies?.token;
+    const tokenFromCookie = request.cookies?.accessToken || request.cookies?.token;
     const authHeader = request.headers.authorization as string | undefined;
     let tokenFromHeader: string | undefined;
 
