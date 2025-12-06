@@ -6,20 +6,12 @@
 -- ============================================================================
 
 -- ============================================================================
--- DEPARTAMENTOS SENAI-BA (6 departamentos principais)
+-- DEPARTAMENTOS SENAI-BA (5 departamentos principais)
 -- ============================================================================
 
 INSERT INTO departamentos (uuid, nome, sigla, descricao, cor_hex, icone, ativo) VALUES
   (gen_random_uuid(), 
-   'Tecnologia da Informação', 
-   'TI', 
-   'Desenvolvimento de software, redes, segurança da informação e infraestrutura',
-   '#3B82F6',
-   'code',
-   TRUE),
-  
-  (gen_random_uuid(), 
-   'Automação e Controle', 
+   'Automação', 
    'AUTO', 
    'Sistemas automatizados, controladores, IoT e robótica industrial',
    '#10B981',
@@ -27,35 +19,35 @@ INSERT INTO departamentos (uuid, nome, sigla, descricao, cor_hex, icone, ativo) 
    TRUE),
   
   (gen_random_uuid(), 
-   'Eletromecânica', 
-   'ELETRO', 
-   'Sistemas elétricos, mecânicos e manutenção industrial',
+   'Manutenção', 
+   'MANUT', 
+   'Manutenção industrial, sistemas elétricos e mecânicos',
    '#F59E0B',
-   'bolt',
+   'wrench',
    TRUE),
   
   (gen_random_uuid(), 
-   'Gestão e Negócios', 
-   'GESTAO', 
-   'Administração, logística, segurança do trabalho e processos',
-   '#8B5CF6',
+   'Gestão e Tecnologia da Informação', 
+   'GTI', 
+   'Gestão, administração, desenvolvimento de software e tecnologia da informação',
+   '#3B82F6',
    'briefcase',
    TRUE),
   
   (gen_random_uuid(), 
-   'Design e Comunicação', 
-   'DESIGN', 
-   'Design gráfico, UX/UI, comunicação visual e mídia digital',
-   '#EC4899',
-   'palette',
+   'Química, Segurança e Edificações', 
+   'QSE', 
+   'Processos químicos, segurança do trabalho e construção civil',
+   '#8B5CF6',
+   'flask',
    TRUE),
   
   (gen_random_uuid(), 
-   'Manufatura Avançada', 
-   'MANUF', 
-   'Impressão 3D, usinagem CNC, prototipagem e fabricação digital',
-   '#06B6D4',
-   'cube',
+   'Gratuidade', 
+   'GRAT', 
+   'Programas de gratuidade e projetos sociais',
+   '#EC4899',
+   'heart',
    TRUE);
 
 -- ============================================================================
@@ -106,7 +98,7 @@ INSERT INTO tecnologias (uuid, nome, categoria, cor_hex, icone, ativo) VALUES
 -- VERIFICAÇÃO DE DADOS INSERIDOS
 -- ============================================================================
 
--- Contar departamentos (deve retornar 6)
+-- Contar departamentos (deve retornar 5)
 DO $$
 DECLARE
   dept_count INTEGER;
@@ -114,8 +106,8 @@ BEGIN
   SELECT COUNT(*) INTO dept_count FROM departamentos;
   RAISE NOTICE '✓ Departamentos inseridos: %', dept_count;
   
-  IF dept_count != 6 THEN
-    RAISE EXCEPTION 'Erro: Esperado 6 departamentos, encontrado %', dept_count;
+  IF dept_count != 5 THEN
+    RAISE EXCEPTION 'Erro: Esperado 5 departamentos, encontrado %', dept_count;
   END IF;
 END $$;
 
