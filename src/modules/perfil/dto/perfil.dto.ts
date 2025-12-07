@@ -57,7 +57,8 @@ export class CompletarCadastroProfessorDto {
   @IsString({ message: 'Matrícula deve ser uma string' })
   @MinLength(5, { message: 'Matrícula deve ter no mínimo 5 caracteres' })
   @MaxLength(20, { message: 'Matrícula deve ter no máximo 20 caracteres' })
-  matricula: string;
+  @IsOptional()
+  matricula?: string;
 
   @IsUUID('4', { message: 'UUID do departamento inválido' })
   @IsOptional()
