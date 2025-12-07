@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import { extname, join } from 'path';
-import fileType from 'file-type';
+// usamos import dinâmica para suportar múltiplas versões do pacote 'file-type'
 import { BadRequestException } from '@nestjs/common';
 
 /**
@@ -98,7 +98,17 @@ export async function validarMagicNumbers(
 ): Promise<boolean> {
   try {
     // Usa biblioteca file-type para detectar tipo real do arquivo
-    const tipoDetectado = await fileType.fromBuffer(buffer);
+    // Faz import dinâmica para compatibilidade com versões que exportam
+    // `fileTypeFromBuffer` ou `fromBuffer`.
+    const fileTypeLib: any = await import('file-type');
+    const detectFn: ((b: Buffer) => Promise<any>) |
+      undefined = fileTypeLib.fileTypeFromBuffer || fileTypeLib.fromBuffer || fileTypeLib.default?.fromBuffer;
+
+    if (!detectFn) {
+      throw new BadRequestException('Biblioteca file-type não disponível no runtime');
+    }
+
+    const tipoDetectado = await detectFn(buffer);
 
     if (!tipoDetectado) {
       throw new BadRequestException(
