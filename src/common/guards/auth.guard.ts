@@ -10,6 +10,7 @@ import { Request } from 'express';
 /**
  * Guard de autenticação JWT
  * Verifica se o usuário possui token válido
+ * Suporta token via Cookie ou Header Authorization
  */
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -17,7 +18,7 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
-    const token = this.extractTokenFromHeader(request);
+    const token = this.extractToken(request);
 
     if (!token) {
       throw new UnauthorizedException('Token não fornecido');
@@ -37,8 +38,22 @@ export class AuthGuard implements CanActivate {
     return true;
   }
 
-  private extractTokenFromHeader(request: Request): string | undefined {
-    const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    return type === 'Bearer' ? token : undefined;
+  /**
+   * Extrai token do cookie ou do header Authorization
+   */
+  private extractToken(request: Request): string | undefined {
+    // 1. Primeiro tenta do cookie
+    const tokenFromCookie = request.cookies?.accessToken || request.cookies?.token;
+    if (tokenFromCookie) {
+      return tokenFromCookie;
+    }
+
+    // 2. Fallback para header Authorization: Bearer <token>
+    const authHeader = request.headers.authorization;
+    if (authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
+      return authHeader.slice(7).trim();
+    }
+
+    return undefined;
   }
 }
