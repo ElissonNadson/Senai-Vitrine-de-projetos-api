@@ -532,6 +532,6 @@ export class ProjetosService {
       throw new ForbiddenException('Usuário não autenticado');
     }
 
-    return this.projetosDao.listarMeusProjetos(usuario.uuid);
+    return this.projetosDao.listarMeusProjetos(usuario.uuid, usuario.tipo || 'ALUNO');
   }
 }
