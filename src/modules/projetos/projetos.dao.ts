@@ -26,7 +26,7 @@ export class ProjetosDao {
 
   /**
    * Cria rascunho inicial do projeto (Passo 1)
-   * @param dados - titulo, descricao, departamento_uuid (opcional)
+   * @param dados - titulo, descricao, categoria, departamento_uuid (opcional)
    * @param usuarioUuid - UUID do usuário (tabela usuarios)
    */
   async criarRascunho(
@@ -36,14 +36,20 @@ export class ProjetosDao {
   ): Promise<string> {
     const db = client || this.pool;
 
-    // Criar projeto
+    // Criar projeto com novos campos
     const result = await db.query(
       `INSERT INTO projetos (
-        titulo, descricao, departamento_uuid, 
+        titulo, descricao, categoria, departamento_uuid, 
         criado_por_uuid, lider_uuid, fase_atual, status
-      ) VALUES ($1, $2, $3, $4, $4, 'IDEACAO', 'RASCUNHO')
+      ) VALUES ($1, $2, $3, $4, $5, $5, 'IDEACAO', 'RASCUNHO')
       RETURNING uuid`,
-      [dados.titulo, dados.descricao, dados.departamento_uuid || null, usuarioUuid],
+      [
+        dados.titulo, 
+        dados.descricao, 
+        dados.categoria,
+        dados.departamento_uuid || null, 
+        usuarioUuid
+      ],
     );
 
     const projetoUuid = result.rows[0].uuid;
@@ -634,5 +640,393 @@ export class ProjetosDao {
     }
     
     return { publicados, rascunhos };
+  }
+
+  /**
+   * Atualiza informações acadêmicas do projeto (Passo 2)
+   */
+  async atualizarInformacoesAcademicas(
+    projetoUuid: string,
+    dados: any,
+    client?: PoolClient,
+  ): Promise<void> {
+    const db = client || this.pool;
+
+    await db.query(
+      `UPDATE projetos 
+       SET curso = $1, 
+           turma = $2, 
+           modalidade = $3,
+           unidade_curricular = $4,
+           itinerario = $5,
+           senai_lab = $6,
+           saga_senai = $7,
+           atualizado_em = CURRENT_TIMESTAMP
+       WHERE uuid = $8`,
+      [
+        dados.curso,
+        dados.turma,
+        dados.modalidade,
+        dados.unidade_curricular || null,
+        dados.itinerario || false,
+        dados.senai_lab || false,
+        dados.saga_senai || false,
+        projetoUuid,
+      ],
+    );
+  }
+
+  /**
+   * Salva ou atualiza fase do projeto (Passo 4)
+   */
+  async salvarFaseProjeto(
+    projetoUuid: string,
+    nomeFase: string,
+    descricao: string,
+    ordem: number,
+    client?: PoolClient,
+  ): Promise<string> {
+    const db = client || this.pool;
+
+    const result = await db.query(
+      `INSERT INTO projetos_fases (projeto_uuid, nome_fase, descricao, ordem)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (projeto_uuid, nome_fase) 
+       DO UPDATE SET descricao = $3, atualizado_em = CURRENT_TIMESTAMP
+       RETURNING uuid`,
+      [projetoUuid, nomeFase, descricao, ordem],
+    );
+
+    return result.rows[0].uuid;
+  }
+
+  /**
+   * Salva anexo de uma fase
+   */
+  async salvarAnexoFase(
+    faseUuid: string,
+    anexo: any,
+    client?: PoolClient,
+  ): Promise<void> {
+    const db = client || this.pool;
+
+    await db.query(
+      `INSERT INTO projetos_fases_anexos 
+       (fase_uuid, tipo_anexo, nome_arquivo, url_arquivo, tamanho_bytes, mime_type)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (fase_uuid, tipo_anexo, nome_arquivo) 
+       DO UPDATE SET url_arquivo = $4, tamanho_bytes = $5, mime_type = $6`,
+      [
+        faseUuid,
+        anexo.tipo,
+        anexo.nome_arquivo,
+        anexo.url_arquivo,
+        anexo.tamanho_bytes || null,
+        anexo.mime_type || null,
+      ],
+    );
+  }
+
+  /**
+   * Remove todos os anexos de uma fase
+   */
+  async removerAnexosFase(
+    faseUuid: string,
+    client?: PoolClient,
+  ): Promise<void> {
+    const db = client || this.pool;
+    await db.query('DELETE FROM projetos_fases_anexos WHERE fase_uuid = $1', [faseUuid]);
+  }
+
+  /**
+   * Atualiza configurações de repositório e privacidade (Passo 5)
+   */
+  async atualizarRepositorioPrivacidade(
+    projetoUuid: string,
+    dados: any,
+    client?: PoolClient,
+  ): Promise<void> {
+    const db = client || this.pool;
+
+    await db.query(
+      `UPDATE projetos 
+       SET has_repositorio = $1,
+           tipo_repositorio = $2,
+           link_repositorio = $3,
+           codigo_visibilidade = $4,
+           anexos_visibilidade = $5,
+           aceitou_termos = $6,
+           atualizado_em = CURRENT_TIMESTAMP
+       WHERE uuid = $7`,
+      [
+        dados.has_repositorio,
+        dados.tipo_repositorio || null,
+        dados.link_repositorio || null,
+        dados.codigo_visibilidade || 'Público',
+        dados.anexos_visibilidade || 'Público',
+        dados.aceitou_termos,
+        projetoUuid,
+      ],
+    );
+  }
+
+  /**
+   * Salva arquivo de código fonte (ZIP)
+   */
+  async salvarCodigoFonte(
+    projetoUuid: string,
+    nomeArquivo: string,
+    urlArquivo: string,
+    tamanhoBytes: number,
+    client?: PoolClient,
+  ): Promise<void> {
+    const db = client || this.pool;
+
+    await db.query(
+      `INSERT INTO projetos_codigo 
+       (projeto_uuid, nome_arquivo, url_arquivo, tamanho_bytes)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (projeto_uuid) 
+       DO UPDATE SET nome_arquivo = $2, url_arquivo = $3, tamanho_bytes = $4, atualizado_em = CURRENT_TIMESTAMP`,
+      [projetoUuid, nomeArquivo, urlArquivo, tamanhoBytes],
+    );
+  }
+
+  /**
+   * Busca fases do projeto com anexos
+   */
+  async buscarFasesProjeto(projetoUuid: string): Promise<any[]> {
+    const result = await this.pool.query(
+      `SELECT 
+        pf.uuid,
+        pf.nome_fase,
+        pf.descricao,
+        pf.ordem,
+        json_agg(
+          json_build_object(
+            'uuid', pfa.uuid,
+            'tipo_anexo', pfa.tipo_anexo,
+            'nome_arquivo', pfa.nome_arquivo,
+            'url_arquivo', pfa.url_arquivo,
+            'tamanho_bytes', pfa.tamanho_bytes,
+            'mime_type', pfa.mime_type,
+            'criado_em', pfa.criado_em
+          ) ORDER BY pfa.criado_em
+        ) FILTER (WHERE pfa.uuid IS NOT NULL) as anexos
+       FROM projetos_fases pf
+       LEFT JOIN projetos_fases_anexos pfa ON pf.uuid = pfa.fase_uuid
+       WHERE pf.projeto_uuid = $1
+       GROUP BY pf.uuid, pf.nome_fase, pf.descricao, pf.ordem
+       ORDER BY pf.ordem`,
+      [projetoUuid],
+    );
+
+    return result.rows;
+  }
+
+  /**
+   * Busca código fonte do projeto
+   */
+  async buscarCodigoFonte(projetoUuid: string): Promise<any> {
+    const result = await this.pool.query(
+      `SELECT uuid, nome_arquivo, url_arquivo, tamanho_bytes, criado_em
+       FROM projetos_codigo
+       WHERE projeto_uuid = $1`,
+      [projetoUuid],
+    );
+
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Registra log de auditoria
+   */
+  async registrarAuditoria(
+    projetoUuid: string,
+    usuarioUuid: string,
+    acao: string,
+    descricao: string,
+    dadosAnteriores: any,
+    dadosNovos: any,
+    ipAddress?: string,
+    userAgent?: string,
+    client?: PoolClient,
+  ): Promise<void> {
+    const db = client || this.pool;
+
+    await db.query(
+      `INSERT INTO projetos_auditoria 
+       (projeto_uuid, usuario_uuid, acao, descricao, dados_anteriores, dados_novos, ip_address, user_agent)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        projetoUuid,
+        usuarioUuid,
+        acao,
+        descricao,
+        dadosAnteriores ? JSON.stringify(dadosAnteriores) : null,
+        dadosNovos ? JSON.stringify(dadosNovos) : null,
+        ipAddress || null,
+        userAgent || null,
+      ],
+    );
+  }
+
+  /**
+   * Busca histórico de auditoria de um projeto
+   */
+  async buscarAuditoriaProjeto(
+    projetoUuid: string,
+    limite?: number,
+  ): Promise<any[]> {
+    const query = `
+      SELECT 
+        pa.uuid,
+        pa.acao,
+        pa.descricao,
+        pa.dados_anteriores,
+        pa.dados_novos,
+        pa.ip_address,
+        pa.criado_em,
+        u.nome as usuario_nome,
+        u.email as usuario_email,
+        u.tipo as usuario_tipo
+      FROM projetos_auditoria pa
+      INNER JOIN usuarios u ON pa.usuario_uuid = u.uuid
+      WHERE pa.projeto_uuid = $1
+      ORDER BY pa.criado_em DESC
+      ${limite ? `LIMIT ${limite}` : ''}
+    `;
+
+    const result = await this.pool.query(query, [projetoUuid]);
+    return result.rows;
+  }
+
+  /**
+   * Valida se alunos existem no banco
+   */
+  async validarAlunos(alunosUuids: string[]): Promise<{ validos: string[], invalidos: string[] }> {
+    if (alunosUuids.length === 0) {
+      return { validos: [], invalidos: [] };
+    }
+
+    const result = await this.pool.query(
+      `SELECT uuid FROM alunos WHERE uuid = ANY($1::uuid[])`,
+      [alunosUuids],
+    );
+
+    const validos = result.rows.map(row => row.uuid);
+    const invalidos = alunosUuids.filter(uuid => !validos.includes(uuid));
+
+    return { validos, invalidos };
+  }
+
+  /**
+   * Valida se professores existem no banco
+   */
+  async validarProfessores(professoresUuids: string[]): Promise<{ validos: string[], invalidos: string[] }> {
+    if (professoresUuids.length === 0) {
+      return { validos: [], invalidos: [] };
+    }
+
+    const result = await this.pool.query(
+      `SELECT uuid FROM professores WHERE uuid = ANY($1::uuid[])`,
+      [professoresUuids],
+    );
+
+    const validos = result.rows.map(row => row.uuid);
+    const invalidos = professoresUuids.filter(uuid => !validos.includes(uuid));
+
+    return { validos, invalidos };
+  }
+
+  /**
+   * Busca informações completas de alunos para validação
+   */
+  async buscarAlunosParaValidacao(alunosUuids: string[]): Promise<any[]> {
+    if (alunosUuids.length === 0) {
+      return [];
+    }
+
+    const result = await this.pool.query(
+      `SELECT 
+        a.uuid,
+        u.nome,
+        u.email,
+        u.avatar_url,
+        a.matricula,
+        c.nome as curso_nome,
+        c.sigla as curso_sigla
+       FROM alunos a
+       INNER JOIN usuarios u ON a.usuario_uuid = u.uuid
+       LEFT JOIN cursos c ON a.curso_uuid = c.uuid
+       WHERE a.uuid = ANY($1::uuid[])`,
+      [alunosUuids],
+    );
+
+    return result.rows;
+  }
+
+  /**
+   * Busca informações completas de professores para validação
+   */
+  async buscarProfessoresParaValidacao(professoresUuids: string[]): Promise<any[]> {
+    if (professoresUuids.length === 0) {
+      return [];
+    }
+
+    const result = await this.pool.query(
+      `SELECT 
+        p.uuid,
+        u.nome,
+        u.email,
+        u.avatar_url,
+        d.nome as departamento_nome
+       FROM professores p
+       INNER JOIN usuarios u ON p.usuario_uuid = u.uuid
+       LEFT JOIN departamentos d ON p.departamento_uuid = d.uuid
+       WHERE p.uuid = ANY($1::uuid[])`,
+      [professoresUuids],
+    );
+
+    return result.rows;
+  }
+
+  /**
+   * Resolve usuários por email, retornando apenas alunos e professores
+   */
+  async resolverUsuariosPorEmail(emails: string[]): Promise<{
+    alunos: { email: string; usuario_uuid: string; aluno_uuid: string; nome: string }[];
+    professores: { email: string; usuario_uuid: string; professor_uuid: string; nome: string }[];
+  }> {
+    if (!emails || emails.length === 0) {
+      return { alunos: [], professores: [] };
+    }
+
+    const normalized = emails.map(e => e.toLowerCase());
+
+    const result = await this.pool.query(
+      `SELECT
+         u.email,
+         u.uuid AS usuario_uuid,
+         u.nome,
+         u.tipo,
+         a.uuid AS aluno_uuid,
+         p.uuid AS professor_uuid
+       FROM usuarios u
+       LEFT JOIN alunos a ON a.usuario_uuid = u.uuid AND u.tipo = 'ALUNO'
+       LEFT JOIN professores p ON p.usuario_uuid = u.uuid AND u.tipo = 'PROFESSOR'
+       WHERE LOWER(u.email) = ANY($1::text[])`,
+      [normalized],
+    );
+
+    const alunos = result.rows
+      .filter(r => r.tipo === 'ALUNO' && r.aluno_uuid)
+      .map(r => ({ email: r.email, usuario_uuid: r.usuario_uuid, aluno_uuid: r.aluno_uuid, nome: r.nome }));
+
+    const professores = result.rows
+      .filter(r => r.tipo === 'PROFESSOR' && r.professor_uuid)
+      .map(r => ({ email: r.email, usuario_uuid: r.usuario_uuid, professor_uuid: r.professor_uuid, nome: r.nome }));
+
+    return { alunos, professores };
   }
 }

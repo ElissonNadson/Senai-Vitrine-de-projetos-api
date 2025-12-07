@@ -13,6 +13,7 @@ import {
   Passo2ProjetoDto,
   Passo3ProjetoDto,
   Passo4ProjetoDto,
+  Passo5ProjetoDto,
   UpdateProjetoDto,
 } from './dto/create-projeto.dto';
 import { censurarEmail } from '../../common/utils/email-validator.util';
@@ -78,6 +79,24 @@ export class ProjetosService {
         client,
       );
 
+      // Registra auditoria
+      await this.projetosDao.registrarAuditoria(
+        projetoUuid,
+        usuario.uuid,
+        'CRIACAO',
+        'Projeto criado pelo aluno',
+        null,
+        {
+          titulo: dados.titulo,
+          descricao: dados.descricao,
+          categoria: dados.categoria,
+          lider_uuid: alunoUuid,
+        },
+        usuario.ip,
+        usuario.userAgent,
+        client,
+      );
+
       await client.query('COMMIT');
 
       return {
@@ -93,9 +112,9 @@ export class ProjetosService {
   }
 
   /**
-   * Passo 2: Adicionar autores
+   * Passo 2: Atualizar informações acadêmicas
    */
-  async adicionarAutoresPasso2(
+  async atualizarInformacoesAcademicas(
     projetoUuid: string,
     dados: Passo2ProjetoDto,
     usuario: any,
@@ -113,7 +132,91 @@ export class ProjetosService {
     );
 
     if (alunoResult.rows.length === 0) {
-      throw new ForbiddenException('Apenas alunos podem adicionar autores');
+      throw new ForbiddenException('Apenas alunos podem editar este projeto');
+    }
+
+    const alunoUuid = alunoResult.rows[0].uuid;
+    const isAutor = await this.projetosDao.verificarAutorProjeto(
+      projetoUuid,
+      alunoUuid,
+    );
+
+    if (!isAutor && usuario.tipo !== 'ADMIN') {
+      throw new ForbiddenException(
+        'Você não tem permissão para editar este projeto',
+      );
+    }
+
+    const client = await this.pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      // Captura estado anterior
+      const dadosAnteriores = {
+        curso: projeto.curso,
+        turma: projeto.turma,
+        modalidade: projeto.modalidade,
+        unidade_curricular: projeto.unidade_curricular,
+        itinerario: projeto.itinerario,
+        senai_lab: projeto.senai_lab,
+        saga_senai: projeto.saga_senai,
+      };
+
+      await this.projetosDao.atualizarInformacoesAcademicas(
+        projetoUuid,
+        dados,
+        client,
+      );
+
+      // Registra auditoria
+      await this.projetosDao.registrarAuditoria(
+        projetoUuid,
+        usuario.uuid,
+        'ATUALIZACAO_PASSO2',
+        'Informações acadêmicas atualizadas',
+        dadosAnteriores,
+        dados,
+        usuario.ip,
+        usuario.userAgent,
+        client,
+      );
+
+      await client.query('COMMIT');
+
+      return {
+        mensagem: 'Informações acadêmicas atualizadas. Prossiga para o Passo 3.',
+      };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Passo 3: Adicionar autores e orientadores
+   */
+  async adicionarEquipePasso3(
+    projetoUuid: string,
+    dados: Passo3ProjetoDto,
+    usuario: any,
+  ): Promise<{ mensagem: string }> {
+    const projeto = await this.projetosDao.buscarPorUuid(projetoUuid);
+
+    if (!projeto) {
+      throw new NotFoundException('Projeto não encontrado');
+    }
+
+    // Verifica permissão
+    const alunoResult = await this.pool.query(
+      'SELECT uuid FROM alunos WHERE usuario_uuid = $1',
+      [usuario.uuid],
+    );
+
+    if (alunoResult.rows.length === 0) {
+      throw new ForbiddenException('Apenas alunos podem editar este projeto');
     }
 
     const alunoUuid = alunoResult.rows[0].uuid;
@@ -134,24 +237,77 @@ export class ProjetosService {
       throw new BadRequestException('Projeto deve ter exatamente 1 líder');
     }
 
+    // Valida se todos os alunos existem
+    const alunosUuids = dados.autores.map(a => a.aluno_uuid);
+    const validacaoAlunos = await this.projetosDao.validarAlunos(alunosUuids);
+    
+    if (validacaoAlunos.invalidos.length > 0) {
+      throw new BadRequestException(
+        `Os seguintes alunos não foram encontrados: ${validacaoAlunos.invalidos.join(', ')}`
+      );
+    }
+
+    // Valida se todos os professores existem
+    const validacaoProfessores = await this.projetosDao.validarProfessores(dados.orientadores_uuids);
+    
+    if (validacaoProfessores.invalidos.length > 0) {
+      throw new BadRequestException(
+        `Os seguintes professores não foram encontrados: ${validacaoProfessores.invalidos.join(', ')}`
+      );
+    }
+
     const client = await this.pool.connect();
 
     try {
       await client.query('BEGIN');
 
-      // Remove autores atuais (exceto o criador que já foi adicionado no Passo 1)
+      // Captura equipe anterior para auditoria
+      const autoresAnteriores = await this.projetosDao.buscarAutores(projetoUuid);
+      const orientadoresAnteriores = await this.projetosDao.buscarOrientadores(projetoUuid);
+
+      // Remove autores e orientadores atuais
       await client.query(
         'DELETE FROM projetos_alunos WHERE projeto_uuid = $1',
         [projetoUuid],
       );
+      await client.query(
+        'DELETE FROM projetos_professores WHERE projeto_uuid = $1',
+        [projetoUuid],
+      );
 
-      // Adiciona novos autores
+      // Adiciona autores
       await this.projetosDao.adicionarAutores(projetoUuid, dados.autores, client);
+
+      // Adiciona orientadores
+      await this.projetosDao.adicionarOrientadores(
+        projetoUuid,
+        dados.orientadores_uuids,
+        client,
+      );
+
+      // Registra auditoria
+      await this.projetosDao.registrarAuditoria(
+        projetoUuid,
+        usuario.uuid,
+        'ATUALIZACAO_PASSO3',
+        'Equipe (autores e orientadores) atualizada',
+        {
+          autores: autoresAnteriores.map(a => ({ uuid: a.aluno_uuid, papel: a.papel })),
+          orientadores: orientadoresAnteriores.map(o => o.professor_uuid),
+        },
+        {
+          autores: dados.autores,
+          orientadores: dados.orientadores_uuids,
+        },
+        usuario.ip,
+        usuario.userAgent,
+        client,
+      );
 
       await client.query('COMMIT');
 
       return {
-        mensagem: 'Autores adicionados com sucesso. Prossiga para o Passo 3.',
+        mensagem: 'Equipe adicionada com sucesso. Prossiga para o Passo 4.',
       };
     } catch (error) {
       await client.query('ROLLBACK');
@@ -162,11 +318,11 @@ export class ProjetosService {
   }
 
   /**
-   * Passo 3: Adicionar orientadores e tecnologias
+   * Passo 4: Salvar fases do projeto (ideação, modelagem, prototipagem, implementação)
    */
-  async adicionarOrientadoresPasso3(
+  async salvarFasesPasso4(
     projetoUuid: string,
-    dados: Passo3ProjetoDto,
+    dados: Passo4ProjetoDto,
     usuario: any,
   ): Promise<{ mensagem: string }> {
     const projeto = await this.projetosDao.buscarPorUuid(projetoUuid);
@@ -182,9 +338,7 @@ export class ProjetosService {
     );
 
     if (alunoResult.rows.length === 0) {
-      throw new ForbiddenException(
-        'Apenas alunos podem adicionar orientadores',
-      );
+      throw new ForbiddenException('Apenas alunos podem editar este projeto');
     }
 
     const alunoUuid = alunoResult.rows[0].uuid;
@@ -204,35 +358,56 @@ export class ProjetosService {
     try {
       await client.query('BEGIN');
 
-      // Remove orientadores e tecnologias atuais
-      await client.query(
-        'DELETE FROM projetos_professores WHERE projeto_uuid = $1',
-        [projetoUuid],
-      );
-      await this.projetosDao.removerTecnologias(projetoUuid, client);
+      // Captura fases anteriores para auditoria
+      const fasesAnteriores = await this.projetosDao.buscarFasesProjeto(projetoUuid);
 
-      // Adiciona orientadores
-      await this.projetosDao.adicionarOrientadores(
+      // Salvar cada fase
+      const fases = [
+        { nome: 'ideacao', dados: dados.ideacao, ordem: 1 },
+        { nome: 'modelagem', dados: dados.modelagem, ordem: 2 },
+        { nome: 'prototipagem', dados: dados.prototipagem, ordem: 3 },
+        { nome: 'implementacao', dados: dados.implementacao, ordem: 4 },
+      ];
+
+      for (const fase of fases) {
+        if (fase.dados) {
+          // Salvar descrição da fase
+          const faseUuid = await this.projetosDao.salvarFaseProjeto(
+            projetoUuid,
+            fase.nome,
+            fase.dados.descricao || '',
+            fase.ordem,
+            client,
+          );
+
+          // Remover anexos antigos e salvar novos
+          await this.projetosDao.removerAnexosFase(faseUuid, client);
+
+          if (fase.dados.anexos && fase.dados.anexos.length > 0) {
+            for (const anexo of fase.dados.anexos) {
+              await this.projetosDao.salvarAnexoFase(faseUuid, anexo, client);
+            }
+          }
+        }
+      }
+
+      // Registra auditoria
+      await this.projetosDao.registrarAuditoria(
         projetoUuid,
-        dados.orientadores_uuids,
+        usuario.uuid,
+        'ATUALIZACAO_PASSO4',
+        'Fases do projeto (Ideação, Modelagem, Prototipagem, Implementação) atualizadas',
+        { fases: fasesAnteriores },
+        { fases: dados },
+        usuario.ip,
+        usuario.userAgent,
         client,
       );
-
-      // Adiciona tecnologias
-      await this.projetosDao.adicionarTecnologias(
-        projetoUuid,
-        dados.tecnologias_uuids,
-        client,
-      );
-
-      // Atualiza objetivos e resultados esperados
-      await this.projetosDao.atualizarPasso3(projetoUuid, dados, client);
 
       await client.query('COMMIT');
 
       return {
-        mensagem:
-          'Orientadores e tecnologias adicionados. Prossiga para o Passo 4.',
+        mensagem: 'Fases do projeto salvas com sucesso. Prossiga para o Passo 5.',
       };
     } catch (error) {
       await client.query('ROLLBACK');
@@ -243,11 +418,11 @@ export class ProjetosService {
   }
 
   /**
-   * Passo 4: Publicar projeto com banner
+   * Passo 5: Configurar repositório e privacidade
    */
-  async publicarProjetoPasso4(
+  async configurarRepositorioPasso5(
     projetoUuid: string,
-    dados: Passo4ProjetoDto,
+    dados: Passo5ProjetoDto,
     usuario: any,
   ): Promise<{ mensagem: string }> {
     const projeto = await this.projetosDao.buscarPorUuid(projetoUuid);
@@ -263,7 +438,7 @@ export class ProjetosService {
     );
 
     if (alunoResult.rows.length === 0) {
-      throw new ForbiddenException('Apenas alunos podem publicar projetos');
+      throw new ForbiddenException('Apenas alunos podem editar este projeto');
     }
 
     const alunoUuid = alunoResult.rows[0].uuid;
@@ -274,7 +449,14 @@ export class ProjetosService {
 
     if (!isAutor && usuario.tipo !== 'ADMIN') {
       throw new ForbiddenException(
-        'Você não tem permissão para publicar este projeto',
+        'Você não tem permissão para editar este projeto',
+      );
+    }
+
+    // Valida que termos foram aceitos
+    if (!dados.aceitou_termos) {
+      throw new BadRequestException(
+        'Você deve aceitar os termos de uso para publicar o projeto',
       );
     }
 
@@ -283,8 +465,56 @@ export class ProjetosService {
     try {
       await client.query('BEGIN');
 
-      // Publica projeto
-      await this.projetosDao.publicarProjeto(projetoUuid, dados, client);
+      // Captura estado anterior
+      const dadosAnteriores = {
+        has_repositorio: projeto.has_repositorio,
+        tipo_repositorio: projeto.tipo_repositorio,
+        link_repositorio: projeto.link_repositorio,
+        codigo_visibilidade: projeto.codigo_visibilidade,
+        anexos_visibilidade: projeto.anexos_visibilidade,
+        status: projeto.status,
+      };
+
+      // Atualizar configurações de repositório e privacidade
+      await this.projetosDao.atualizarRepositorioPrivacidade(
+        projetoUuid,
+        dados,
+        client,
+      );
+
+      // Publicar projeto
+      await client.query(
+        `UPDATE projetos 
+         SET status = 'PUBLICADO', 
+             data_publicacao = CURRENT_TIMESTAMP
+         WHERE uuid = $1`,
+        [projetoUuid],
+      );
+
+      // Registra auditoria de atualização e publicação
+      await this.projetosDao.registrarAuditoria(
+        projetoUuid,
+        usuario.uuid,
+        'ATUALIZACAO_PASSO5',
+        'Repositório e privacidade configurados',
+        dadosAnteriores,
+        dados,
+        usuario.ip,
+        usuario.userAgent,
+        client,
+      );
+
+      await this.projetosDao.registrarAuditoria(
+        projetoUuid,
+        usuario.uuid,
+        'PUBLICACAO',
+        'Projeto publicado e agora está visível',
+        { status: 'RASCUNHO' },
+        { status: 'PUBLICADO' },
+        usuario.ip,
+        usuario.userAgent,
+        client,
+      );
 
       await client.query('COMMIT');
 
@@ -533,5 +763,85 @@ export class ProjetosService {
     }
 
     return this.projetosDao.listarMeusProjetos(usuario.uuid, usuario.tipo || 'ALUNO');
+  }
+
+  /**
+   * Valida se alunos e professores existem no banco
+   */
+  async validarEquipe(dados: {
+    alunos_uuids?: string[];
+    professores_uuids?: string[];
+  }): Promise<any> {
+    const resultado: any = {
+      alunos: { validos: [], invalidos: [], dados: [] },
+      professores: { validos: [], invalidos: [], dados: [] },
+    };
+
+    // Valida alunos
+    if (dados.alunos_uuids && dados.alunos_uuids.length > 0) {
+      const validacaoAlunos = await this.projetosDao.validarAlunos(dados.alunos_uuids);
+      resultado.alunos.validos = validacaoAlunos.validos;
+      resultado.alunos.invalidos = validacaoAlunos.invalidos;
+
+      // Busca informações completas dos alunos válidos
+      if (validacaoAlunos.validos.length > 0) {
+        resultado.alunos.dados = await this.projetosDao.buscarAlunosParaValidacao(
+          validacaoAlunos.validos,
+        );
+      }
+    }
+
+    // Valida professores
+    if (dados.professores_uuids && dados.professores_uuids.length > 0) {
+      const validacaoProfessores = await this.projetosDao.validarProfessores(
+        dados.professores_uuids,
+      );
+      resultado.professores.validos = validacaoProfessores.validos;
+      resultado.professores.invalidos = validacaoProfessores.invalidos;
+
+      // Busca informações completas dos professores válidos
+      if (validacaoProfessores.validos.length > 0) {
+        resultado.professores.dados = await this.projetosDao.buscarProfessoresParaValidacao(
+          validacaoProfessores.validos,
+        );
+      }
+    }
+
+    return resultado;
+  }
+
+  /**
+   * Busca histórico de auditoria de um projeto
+   */
+  async buscarAuditoria(projetoUuid: string, limite?: number): Promise<any[]> {
+    const projeto = await this.projetosDao.buscarPorUuid(projetoUuid);
+
+    if (!projeto) {
+      throw new NotFoundException('Projeto não encontrado');
+    }
+
+    return this.projetosDao.buscarAuditoriaProjeto(projetoUuid, limite);
+  }
+
+  /**
+   * Resolve emails para UUIDs de alunos/professores
+   */
+  async resolverUsuariosPorEmail(emails: string[]): Promise<{
+    alunos: { email: string; usuario_uuid: string; aluno_uuid: string; nome: string }[];
+    professores: { email: string; usuario_uuid: string; professor_uuid: string; nome: string }[];
+    invalidos: string[];
+  }> {
+    if (!emails || emails.length === 0) {
+      throw new BadRequestException('Informe pelo menos um email');
+    }
+
+    const { alunos, professores } = await this.projetosDao.resolverUsuariosPorEmail(emails);
+
+    const encontrados = new Set<string>([...alunos, ...professores].map(u => u.email.toLowerCase()));
+    const invalidos = emails
+      .map(e => e.toLowerCase())
+      .filter(email => !encontrados.has(email));
+
+    return { alunos, professores, invalidos };
   }
 }

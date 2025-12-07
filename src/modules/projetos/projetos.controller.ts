@@ -17,6 +17,7 @@ import {
   Passo2ProjetoDto,
   Passo3ProjetoDto,
   Passo4ProjetoDto,
+  Passo5ProjetoDto,
   UpdateProjetoDto,
 } from './dto/create-projeto.dto';
 
@@ -26,7 +27,8 @@ export class ProjetosController {
 
   /**
    * POST /projetos/passo1
-   * Cria rascunho do projeto (Passo 1)
+   * Cria rascunho do projeto com informações básicas (Passo 1)
+   * Campos: titulo, descricao, categoria
    */
   @Post('passo1')
   @UseGuards(AuthGuard('jwt'))
@@ -39,44 +41,100 @@ export class ProjetosController {
 
   /**
    * POST /projetos/:uuid/passo2
-   * Adiciona autores ao projeto (Passo 2)
+   * Atualiza informações acadêmicas (Passo 2)
+   * Campos: curso, turma, modalidade, unidade_curricular, itinerario, senai_lab, saga_senai
    */
   @Post(':uuid/passo2')
   @UseGuards(AuthGuard('jwt'))
-  async adicionarAutoresPasso2(
+  async atualizarInformacoesAcademicas(
     @Param('uuid') uuid: string,
     @Body() dados: Passo2ProjetoDto,
     @CurrentUser() usuario: any,
   ) {
-    return this.projetosService.adicionarAutoresPasso2(uuid, dados, usuario);
+    return this.projetosService.atualizarInformacoesAcademicas(uuid, dados, usuario);
   }
 
   /**
    * POST /projetos/:uuid/passo3
-   * Adiciona orientadores e tecnologias (Passo 3)
+   * Adiciona autores e orientadores (Passo 3)
+   * Campos: autores[], orientadores_uuids[]
    */
   @Post(':uuid/passo3')
   @UseGuards(AuthGuard('jwt'))
-  async adicionarOrientadoresPasso3(
+  async adicionarEquipePasso3(
     @Param('uuid') uuid: string,
     @Body() dados: Passo3ProjetoDto,
     @CurrentUser() usuario: any,
   ) {
-    return this.projetosService.adicionarOrientadoresPasso3(uuid, dados, usuario);
+    return this.projetosService.adicionarEquipePasso3(uuid, dados, usuario);
   }
 
   /**
    * POST /projetos/:uuid/passo4
-   * Publica projeto com banner (Passo 4)
+   * Salva fases do projeto com descrições e anexos (Passo 4)
+   * Campos: ideacao, modelagem, prototipagem, implementacao
    */
   @Post(':uuid/passo4')
   @UseGuards(AuthGuard('jwt'))
-  async publicarProjetoPasso4(
+  async salvarFasesPasso4(
     @Param('uuid') uuid: string,
     @Body() dados: Passo4ProjetoDto,
     @CurrentUser() usuario: any,
   ) {
-    return this.projetosService.publicarProjetoPasso4(uuid, dados, usuario);
+    return this.projetosService.salvarFasesPasso4(uuid, dados, usuario);
+  }
+
+  /**
+   * POST /projetos/:uuid/passo5
+   * Configura repositório, privacidade e publica projeto (Passo 5)
+   * Campos: has_repositorio, tipo_repositorio, link_repositorio, visibilidades, aceitou_termos
+   */
+  @Post(':uuid/passo5')
+  @UseGuards(AuthGuard('jwt'))
+  async configurarRepositorioPasso5(
+    @Param('uuid') uuid: string,
+    @Body() dados: Passo5ProjetoDto,
+    @CurrentUser() usuario: any,
+  ) {
+    return this.projetosService.configurarRepositorioPasso5(uuid, dados, usuario);
+  }
+
+  /**
+   * POST /projetos/validar-equipe
+   * Valida se alunos e professores existem no banco antes de adicionar ao projeto
+   */
+  @Post('validar-equipe')
+  @UseGuards(AuthGuard('jwt'))
+  async validarEquipe(
+    @Body() dados: { alunos_uuids?: string[]; professores_uuids?: string[] },
+  ) {
+    return this.projetosService.validarEquipe(dados);
+  }
+
+  /**
+   * GET /projetos/:uuid/auditoria
+   * Busca histórico de alterações de um projeto
+   */
+  @Get(':uuid/auditoria')
+  @UseGuards(AuthGuard('jwt'))
+  async buscarAuditoria(
+    @Param('uuid') uuid: string,
+    @Query('limite') limite?: string,
+  ) {
+    return this.projetosService.buscarAuditoria(
+      uuid,
+      limite ? parseInt(limite, 10) : undefined,
+    );
+  }
+
+  /**
+   * POST /projetos/resolver-usuarios
+   * Resolve emails para UUIDs de alunos/professores
+   */
+  @Post('resolver-usuarios')
+  @UseGuards(AuthGuard('jwt'))
+  async resolverUsuarios(@Body() dados: { emails: string[] }) {
+    return this.projetosService.resolverUsuariosPorEmail(dados.emails);
   }
 
   /**
