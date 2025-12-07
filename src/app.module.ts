@@ -60,6 +60,11 @@ import { JwtModule } from '@nestjs/jwt';
 
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
+    // IMPORTANTE: cookie-parser DEVE vir ANTES do AuthMiddleware
+    consumer
+      .apply(cookieParser())
+      .forRoutes('*');
+
     consumer
       .apply(AuthMiddleware)
       .exclude(
@@ -73,10 +78,6 @@ export class AppModule implements NestModule {
         { path: 'departamentos', method: RequestMethod.GET },
         { path: 'departamentos/(.*)', method: RequestMethod.GET },
       )
-      .forRoutes('*');
-
-    consumer
-      .apply(cookieParser())
       .forRoutes('*');
   }
 }
