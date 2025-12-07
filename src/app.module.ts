@@ -11,9 +11,11 @@ import { UploadModule } from './modules/upload/upload.module';
 import { EtapasModule } from './modules/etapas/etapas.module';
 import { ProgressaoModule } from './modules/progressao/progressao.module';
 import { NotificacoesModule } from './modules/notificacoes/notificacoes.module';
+import { SessoesModule } from './modules/sessoes/sessoes.module';
 import * as cookieParser from 'cookie-parser';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
+import { ScheduleModule } from '@nestjs/schedule';
 import { JwtModule } from '@nestjs/jwt';
 
 @Module({
@@ -22,6 +24,7 @@ import { JwtModule } from '@nestjs/jwt';
       envFilePath: '.env',
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
     BullModule.forRoot({
       connection: {
         host: process.env.REDIS_HOST,
@@ -50,6 +53,7 @@ import { JwtModule } from '@nestjs/jwt';
     EtapasModule,
     ProgressaoModule,
     NotificacoesModule,
+    SessoesModule,
     JwtModule
   ],
 })

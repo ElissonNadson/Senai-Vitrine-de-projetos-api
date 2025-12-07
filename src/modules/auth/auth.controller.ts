@@ -40,8 +40,20 @@ export class AuthController {
   async googleAuthCallback(@Req() req: any, @Res() res) {
     const googleUser: GoogleUserDto = req.user;
 
-    // Valida e cria/atualiza usuário
-    const authResponse = await this.authService.validarCallback(googleUser);
+    // Extrai IP e User-Agent para rastreamento de sessão
+    const ip =
+      req.ip ||
+      req.connection?.remoteAddress ||
+      req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+      'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    // Valida e cria/atualiza usuário (com dados de sessão)
+    const authResponse = await this.authService.validarCallback(
+      googleUser,
+      ip,
+      userAgent,
+    );
 
     // Prepara dados completos para o frontend
     const userData = {
@@ -92,12 +104,22 @@ export class AuthController {
 
   /**
    * POST /auth/logout
-   * Logout (invalida cookies)
+   * Logout (invalida cookies e encerra sessão)
    */
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  async logout(@Res() res: Response) {
-    const result = await this.authService.logout(res);
+  async logout(@Req() req: any, @Res() res: Response) {
+    // Extrai token para encerrar sessão
+    const authHeader = req.headers.authorization;
+    let token: string | undefined;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    } else if (req.cookies?.accessToken) {
+      token = req.cookies.accessToken;
+    }
+
+    const result = await this.authService.logout(res, token);
     return res.json(result);
   }
 }

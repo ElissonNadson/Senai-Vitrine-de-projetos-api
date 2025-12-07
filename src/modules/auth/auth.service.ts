@@ -4,23 +4,31 @@ import {
   UnauthorizedException,
   ConflictException,
   InternalServerErrorException,
+  forwardRef,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as pg from 'pg';
 import { GoogleUserDto, AuthResponseDto } from './dto/auth.dto';
 import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
+import { SessoesService } from '../sessoes/sessoes.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     @Inject('PG_POOL') private readonly pool: pg.Pool,
     private readonly jwtService: JwtService,
+    @Inject(forwardRef(() => SessoesService))
+    private readonly sessoesService: SessoesService,
   ) {}
 
   /**
    * Valida callback do Google OAuth e cria/atualiza usuário
    */
-  async validarCallback(googleUser: GoogleUserDto): Promise<AuthResponseDto> {
+  async validarCallback(
+    googleUser: GoogleUserDto,
+    ip?: string,
+    userAgent?: string,
+  ): Promise<AuthResponseDto> {
     const client = await this.pool.connect();
 
     try {
@@ -53,6 +61,19 @@ export class AuthService {
 
       // Gera token JWT
       const token = await this.gerarToken(usuario);
+
+      // Cria sessão para o usuário
+      try {
+        await this.sessoesService.criarSessao(
+          usuario.uuid,
+          token,
+          ip || 'unknown',
+          userAgent || 'unknown',
+        );
+      } catch (error) {
+        console.error('Erro ao criar sessão:', error);
+        // Não bloqueia o login se falhar ao criar sessão
+      }
 
       return {
         token,
@@ -295,9 +316,18 @@ export class AuthService {
   }
 
   /**
-   * Logout (invalida token - apenas frontend remove localStorage)
+   * Logout (invalida token e encerra sessão)
    */
-  async logout(res: any): Promise<{ mensagem: string }> {
+  async logout(res: any, token?: string): Promise<{ mensagem: string }> {
+    // Encerra a sessão no banco
+    if (token) {
+      try {
+        await this.sessoesService.encerrarSessaoAtual(token);
+      } catch (error) {
+        console.error('Erro ao encerrar sessão:', error);
+      }
+    }
+
     res.clearCookie('token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
