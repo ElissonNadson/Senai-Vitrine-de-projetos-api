@@ -95,16 +95,18 @@ export class PerfilService {
     try {
       await client.query('BEGIN');
 
-      // Verifica se matrícula já existe
-      const matriculaExiste = await this.perfilDao.verificarMatriculaExistente(
-        client,
-        dto.matricula,
-        'PROFESSOR',
-        user.uuid,
-      );
+      // Verifica se matrícula já existe (apenas se foi informada)
+      if (dto.matricula) {
+        const matriculaExiste = await this.perfilDao.verificarMatriculaExistente(
+          client,
+          dto.matricula,
+          'PROFESSOR',
+          user.uuid,
+        );
 
-      if (matriculaExiste) {
-        throw new ConflictException('Matrícula já cadastrada');
+        if (matriculaExiste) {
+          throw new ConflictException('Matrícula já cadastrada');
+        }
       }
 
       // Atualiza dados do professor
@@ -145,19 +147,7 @@ export class PerfilService {
   async atualizarPerfil(
     dto: AtualizarPerfilDto,
     user: JwtPayload,
-  ): Promise<any> {
-    // Log para debug
-    console.log('=== DADOS RECEBIDOS NO DTO ===');
-    console.log('user.uuid:', user?.uuid);
-    console.log('user.tipo:', user?.tipo);
-    console.log('dto completo:', JSON.stringify(dto, null, 2));
-    console.log('dto.cep:', dto.cep);
-    console.log('dto.logradouro:', dto.logradouro);
-    console.log('dto.bairro:', dto.bairro);
-    console.log('dto.cidade:', dto.cidade);
-    console.log('dto.estado:', dto.estado);
-    console.log('==============================');
-    
+  ): Promise<any> {    
     const client = await this.perfilDao.getClient();
 
     try {
@@ -209,10 +199,6 @@ export class PerfilService {
     try {
       let perfil;
 
-      console.log('=== BUSCANDO PERFIL ===');
-      console.log('user.uuid:', user?.uuid);
-      console.log('user.tipo:', user?.tipo);
-
       if (user.tipo === 'ALUNO') {
         perfil = await this.perfilDao.buscarAluno(client, user.uuid);
       } else if (user.tipo === 'PROFESSOR' || user.tipo === 'ADMIN') {
@@ -220,9 +206,6 @@ export class PerfilService {
       } else {
         throw new BadRequestException('Tipo de usuário inválido');
       }
-
-      console.log('Perfil encontrado:', perfil ? 'sim' : 'não');
-      console.log('==============================');
 
       if (!perfil) {
         throw new NotFoundException('Perfil não encontrado');

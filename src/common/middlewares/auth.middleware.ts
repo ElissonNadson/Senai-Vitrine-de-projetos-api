@@ -55,7 +55,7 @@ export class AuthMiddleware implements NestMiddleware {
       });
       req['user'] = await this.jwtService.decode(token);
       return next();
-    } catch {
+    } catch (error) {
       return res.status(401).json({ message: 'Não autorizado' });
     }
   }
