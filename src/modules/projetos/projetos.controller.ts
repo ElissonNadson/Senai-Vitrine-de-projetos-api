@@ -107,6 +107,7 @@ export class ProjetosController {
    * Lista projetos do usuário logado (publicados e rascunhos)
    */
   @Get('meus')
+  @UseGuards(AuthGuard('jwt'))
   async listarMeusProjetos(@CurrentUser() usuario: any) {
     return this.projetosService.listarMeusProjetos(usuario);
   }

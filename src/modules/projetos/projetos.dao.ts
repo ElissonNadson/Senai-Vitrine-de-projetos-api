@@ -517,8 +517,35 @@ export class ProjetosDao {
 
   /**
    * Lista projetos do usuário logado (publicados e rascunhos)
+   * Para ALUNO: busca projetos onde é líder
+   * Para PROFESSOR: busca projetos onde é orientador
    */
-  async listarMeusProjetos(usuarioUuid: string): Promise<{ publicados: any[]; rascunhos: any[] }> {
+  async listarMeusProjetos(usuarioUuid: string, tipoUsuario: string = 'ALUNO'): Promise<{ publicados: any[]; rascunhos: any[] }> {
+    let whereClause: string;
+    let params: any[];
+
+    if (tipoUsuario.toUpperCase() === 'PROFESSOR') {
+      // Para professor, primeiro buscar o professor_uuid
+      const professorResult = await this.pool.query(
+        'SELECT uuid FROM professores WHERE usuario_uuid = $1',
+        [usuarioUuid]
+      );
+
+      if (professorResult.rows.length === 0) {
+        return { publicados: [], rascunhos: [] };
+      }
+
+      const professorUuid = professorResult.rows[0].uuid;
+      whereClause = `WHERE p.uuid IN (
+        SELECT pp.projeto_uuid FROM projetos_professores pp WHERE pp.professor_uuid = $1
+      ) AND p.status != 'ARQUIVADO'`;
+      params = [professorUuid];
+    } else {
+      // Para aluno, buscar por lider_uuid
+      whereClause = `WHERE p.lider_uuid = $1 AND p.status != 'ARQUIVADO'`;
+      params = [usuarioUuid];
+    }
+
     const query = `
       SELECT 
         p.uuid, p.titulo, p.descricao, p.banner_url, p.fase_atual, 
@@ -565,8 +592,7 @@ export class ProjetosDao {
       LEFT JOIN usuarios lider_user ON p.lider_uuid = lider_user.uuid
       LEFT JOIN alunos lider_aluno ON lider_aluno.usuario_uuid = lider_user.uuid
       LEFT JOIN cursos c ON lider_aluno.curso_uuid = c.uuid
-      WHERE p.lider_uuid = $1
-        AND p.status != 'ARQUIVADO'
+      ${whereClause}
       ORDER BY p.criado_em DESC
     `;
 
