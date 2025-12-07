@@ -41,6 +41,7 @@ export class ErrorLoggingInterceptor implements NestInterceptor {
             url: request.url,
             body: request.body,
             ip: request.ip,
+            cookie: request.cookies,
           },
         };
 
@@ -57,6 +58,7 @@ export class ErrorLoggingInterceptor implements NestInterceptor {
           typeof error.getResponse === 'function'
         ) {
           const res = error.getResponse() as any;
+
           if (res?.issues) {
             return throwError(
               () =>
@@ -66,6 +68,23 @@ export class ErrorLoggingInterceptor implements NestInterceptor {
                     message: 'Falha na validação dos dados.',
                     errorId,
                     errors: res.issues, // devolve array [{ path, message }]
+                  },
+                  400,
+                ),
+            );
+          }
+
+          // 🧩 CASO 1.1 — Erro de validação do class-validator (ValidationPipe)
+          // O ValidationPipe retorna um array de mensagens em res.message; exponha isso ao frontend.
+          if (Array.isArray(res?.message) && res.message.length) {
+            return throwError(
+              () =>
+                new HttpException(
+                  {
+                    success: false,
+                    message: 'Falha na validação dos dados.',
+                    errorId,
+                    errors: res.message, // devolve array de mensagens do class-validator
                   },
                   400,
                 ),
