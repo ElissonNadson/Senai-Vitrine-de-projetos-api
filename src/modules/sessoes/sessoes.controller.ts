@@ -52,6 +52,19 @@ export class SessoesController {
   }
 
   /**
+   * Encerra todas as outras sessões (exceto a atual)
+   * DELETE /auth/sessions/others
+   * IMPORTANTE: Esta rota deve vir ANTES de :id para não ser capturada como parâmetro
+   */
+  @Delete('others')
+  @HttpCode(HttpStatus.OK)
+  async encerrarOutrasSessoes(@Req() req: RequestWithUser): Promise<{ count: number }> {
+    const token = this.extractToken(req);
+    const count = await this.sessoesService.encerrarOutrasSessoes(req.user.uuid, token);
+    return { count };
+  }
+
+  /**
    * Encerra uma sessão específica
    * DELETE /auth/sessions/:id
    */
@@ -63,17 +76,5 @@ export class SessoesController {
   ): Promise<void> {
     const token = this.extractToken(req);
     await this.sessoesService.encerrarSessao(req.user.uuid, sessaoId, token);
-  }
-
-  /**
-   * Encerra todas as outras sessões (exceto a atual)
-   * DELETE /auth/sessions/others
-   */
-  @Delete('others')
-  @HttpCode(HttpStatus.OK)
-  async encerrarOutrasSessoes(@Req() req: RequestWithUser): Promise<{ count: number }> {
-    const token = this.extractToken(req);
-    const count = await this.sessoesService.encerrarOutrasSessoes(req.user.uuid, token);
-    return { count };
   }
 }
