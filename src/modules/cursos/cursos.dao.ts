@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 
 @Injectable()
 export class CursosDao {
-  constructor(@Inject('PG_POOL') private readonly pool: Pool) {}
+  constructor(@Inject('PG_POOL') private readonly pool: Pool) { }
 
   /**
    * Lista todos os cursos ativos
@@ -61,5 +61,16 @@ export class CursosDao {
       [cursoUuid],
     );
     return parseInt(result.rows[0].total, 10);
+  }
+
+  /**
+   * Lista unidades curriculares de um curso
+   */
+  async listarUnidadesDoCurso(cursoUuid: string): Promise<any[]> {
+    const result = await this.pool.query(
+      'SELECT * FROM unidades_curriculares WHERE curso_uuid = $1 ORDER BY nome',
+      [cursoUuid],
+    );
+    return result.rows;
   }
 }

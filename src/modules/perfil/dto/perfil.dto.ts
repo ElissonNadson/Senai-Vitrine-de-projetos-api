@@ -99,6 +99,14 @@ export class AtualizarPerfilDto {
   @IsOptional()
   bio?: string;
 
+  @IsUUID('4', { message: 'UUID do curso inválido' })
+  @IsOptional()
+  curso_uuid?: string;
+
+  @IsUUID('4', { message: 'UUID da turma inválido' })
+  @IsOptional()
+  turma_uuid?: string;
+
   @IsString()
   @IsOptional()
   telefone?: string;

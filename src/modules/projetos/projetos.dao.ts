@@ -3,7 +3,7 @@ import { Pool, PoolClient } from 'pg';
 
 @Injectable()
 export class ProjetosDao {
-  constructor(@Inject('PG_POOL') private readonly pool: Pool) {}
+  constructor(@Inject('PG_POOL') private readonly pool: Pool) { }
 
   /**
    * Verifica se título já existe
@@ -44,10 +44,10 @@ export class ProjetosDao {
       ) VALUES ($1, $2, $3, $4, $5, $5, 'IDEACAO', 'RASCUNHO')
       RETURNING uuid`,
       [
-        dados.titulo, 
-        dados.descricao, 
+        dados.titulo,
+        dados.descricao,
         dados.categoria,
-        dados.departamento_uuid || null, 
+        dados.departamento_uuid || null,
         usuarioUuid
       ],
     );
@@ -255,6 +255,43 @@ export class ProjetosDao {
   }
 
   /**
+   * Busca fases do projeto com anexos
+   */
+  async buscarFases(projetoUuid: string): Promise<any> {
+    // 1. Buscar as fases
+    const fasesResult = await this.pool.query(
+      `SELECT uuid, nome_fase, descricao, ordem
+       FROM projetos_fases
+       WHERE projeto_uuid = $1
+       ORDER BY ordem`,
+      [projetoUuid],
+    );
+
+    const fases: any = {};
+
+    // 2. Para cada fase, buscar anexos
+    for (const fase of fasesResult.rows) {
+      const anexosResult = await this.pool.query(
+        `SELECT uuid as id, tipo, nome_arquivo, url_arquivo, tamanho_bytes, mime_type
+         FROM projetos_fases_anexos
+         WHERE fase_uuid = $1`,
+        [fase.uuid],
+      );
+
+      fases[fase.nome_fase] = {
+        uuid: fase.uuid,
+        descricao: fase.descricao,
+        anexos: anexosResult.rows.map(a => ({
+          ...a,
+          file: null // Frontend expects File object but we can only provide metadata here. Frontend must handle 'id' based existing files.
+        }))
+      };
+    }
+
+    return fases;
+  }
+
+  /**
    * Verifica se usuário é autor/líder do projeto
    */
   async verificarAutorProjeto(
@@ -292,14 +329,14 @@ export class ProjetosDao {
     const limit = filtros.limit ? parseInt(filtros.limit) : 10;
     const offset = filtros.offset ? parseInt(filtros.offset) : 0;
     const pagina = Math.floor(offset / limit) + 1;
-    
+
     // Query para contar total
     let countQuery = `
       SELECT COUNT(*) as total
       FROM projetos p
       WHERE p.status = 'PUBLICADO'
     `;
-    
+
     // Query principal com subqueries agregadas para autores, orientadores e tecnologias
     let query = `
       SELECT 
@@ -353,7 +390,7 @@ export class ProjetosDao {
 
     // Aplicar filtros
     const countParams: any[] = [];
-    
+
     if (filtros.departamento_uuid) {
       params.push(filtros.departamento_uuid);
       countParams.push(filtros.departamento_uuid);
@@ -401,7 +438,7 @@ export class ProjetosDao {
     // Adicionar paginação
     params.push(limit);
     query += ` LIMIT $${params.length}`;
-    
+
     params.push(offset);
     query += ` OFFSET $${params.length}`;
 
@@ -487,6 +524,16 @@ export class ProjetosDao {
       valores.push(dados.participou_saga);
     }
 
+    if (dados.categoria !== undefined) {
+      campos.push(`categoria = $${paramIndex++}`);
+      valores.push(dados.categoria);
+    }
+
+    if (dados.banner_url !== undefined) {
+      campos.push(`banner_url = $${paramIndex++}`);
+      valores.push(dados.banner_url);
+    }
+
     if (campos.length === 0) {
       return;
     }
@@ -516,7 +563,7 @@ export class ProjetosDao {
    */
   async deletarProjeto(projetoUuid: string): Promise<void> {
     await this.pool.query(
-      'UPDATE projetos SET fase_atual = $1 WHERE uuid = $2',
+      'UPDATE projetos SET status = $1 WHERE uuid = $2',
       ['ARQUIVADO', projetoUuid],
     );
   }
@@ -603,10 +650,10 @@ export class ProjetosDao {
     `;
 
     const result = await this.pool.query(query, [usuarioUuid]);
-    
+
     const publicados: any[] = [];
     const rascunhos: any[] = [];
-    
+
     for (const row of result.rows) {
       const projeto = {
         uuid: row.uuid,
@@ -631,14 +678,14 @@ export class ProjetosDao {
         tecnologias: row.tecnologias || [],
         total_autores: parseInt(row.total_autores || '0'),
       };
-      
+
       if (row.status === 'PUBLICADO') {
         publicados.push(projeto);
       } else if (row.status === 'RASCUNHO') {
         rascunhos.push(projeto);
       }
     }
-    
+
     return { publicados, rascunhos };
   }
 

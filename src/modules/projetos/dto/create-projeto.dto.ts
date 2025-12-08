@@ -247,7 +247,7 @@ export class UpdateProjetoDto {
 
   @IsString()
   @IsOptional()
-  @MinLength(100)
+  @MinLength(50)
   @MaxLength(5000)
   descricao?: string;
 
@@ -291,4 +291,12 @@ export class UpdateProjetoDto {
   @IsBoolean()
   @IsOptional()
   participou_saga?: boolean;
+
+  @IsString()
+  @IsOptional()
+  categoria?: string;
+
+  @IsString()
+  @IsOptional()
+  banner_url?: string;
 }

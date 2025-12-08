@@ -3,7 +3,7 @@ import { CursosDao } from './cursos.dao';
 
 @Injectable()
 export class CursosService {
-  constructor(private readonly cursosDao: CursosDao) {}
+  constructor(private readonly cursosDao: CursosDao) { }
 
   /**
    * Lista todos os cursos
@@ -58,5 +58,17 @@ export class CursosService {
     }
 
     return curso;
+  }
+  /**
+   * Lista unidades curriculares de um curso
+   */
+  async listarUnidades(cursoUuid: string): Promise<any[]> {
+    // Verifica se o curso existe
+    const curso = await this.cursosDao.buscarPorUuid(cursoUuid);
+    if (!curso) {
+      throw new NotFoundException('Curso não encontrado');
+    }
+
+    return this.cursosDao.listarUnidadesDoCurso(cursoUuid);
   }
 }

@@ -3,7 +3,7 @@ import { CursosService } from './cursos.service';
 
 @Controller('cursos')
 export class CursosController {
-  constructor(private readonly cursosService: CursosService) {}
+  constructor(private readonly cursosService: CursosService) { }
 
   /**
    * GET /cursos
@@ -30,5 +30,13 @@ export class CursosController {
   @Get('sigla/:sigla')
   async buscarPorSigla(@Param('sigla') sigla: string) {
     return this.cursosService.buscarPorSigla(sigla);
+  }
+  /**
+   * GET /cursos/:uuid/unidades
+   * Lista unidades curriculares de um curso
+   */
+  @Get(':uuid/unidades')
+  async listarUnidades(@Param('uuid') uuid: string) {
+    return this.cursosService.listarUnidades(uuid);
   }
 }

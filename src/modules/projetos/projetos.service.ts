@@ -23,7 +23,7 @@ export class ProjetosService {
   constructor(
     @Inject('PG_POOL') private readonly pool: Pool,
     private readonly projetosDao: ProjetosDao,
-  ) {}
+  ) { }
 
   /**
    * Passo 1: Criar rascunho com informações básicas
@@ -240,7 +240,7 @@ export class ProjetosService {
     // Valida se todos os alunos existem
     const alunosUuids = dados.autores.map(a => a.aluno_uuid);
     const validacaoAlunos = await this.projetosDao.validarAlunos(alunosUuids);
-    
+
     if (validacaoAlunos.invalidos.length > 0) {
       throw new BadRequestException(
         `Os seguintes alunos não foram encontrados: ${validacaoAlunos.invalidos.join(', ')}`
@@ -249,7 +249,7 @@ export class ProjetosService {
 
     // Valida se todos os professores existem
     const validacaoProfessores = await this.projetosDao.validarProfessores(dados.orientadores_uuids);
-    
+
     if (validacaoProfessores.invalidos.length > 0) {
       throw new BadRequestException(
         `Os seguintes professores não foram encontrados: ${validacaoProfessores.invalidos.join(', ')}`
@@ -585,6 +585,7 @@ export class ProjetosService {
     const autores = await this.projetosDao.buscarAutores(uuid);
     const orientadores = await this.projetosDao.buscarOrientadores(uuid);
     const tecnologias = await this.projetosDao.buscarTecnologias(uuid);
+    const fases = await this.projetosDao.buscarFases(uuid);
 
     // Censura emails se usuário não autenticado ou não é participante
     let autoresCensurados = autores;
@@ -606,6 +607,7 @@ export class ProjetosService {
       autores: autoresCensurados,
       orientadores: orientadoresCensurados,
       tecnologias,
+      fases,
     };
   }
 
