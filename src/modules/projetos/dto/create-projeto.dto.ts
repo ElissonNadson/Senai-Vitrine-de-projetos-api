@@ -12,6 +12,7 @@ import {
   IsIn,
   IsBoolean,
   IsUrl,
+  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -214,6 +215,7 @@ export class Passo5ProjetoDto {
 
   @IsString()
   @IsOptional()
+  @ValidateIf((o) => o.link_repositorio !== "" && o.link_repositorio !== null && o.link_repositorio !== undefined)
   @IsUrl({}, { message: 'Link do repositório inválido' })
   @MaxLength(500, { message: 'Link do repositório muito longo' })
   link_repositorio?: string;

@@ -545,6 +545,21 @@ export class ProjetosDao {
   }
 
   /**
+   * Atualiza a fase atual do projeto
+   */
+  async atualizarFaseAtual(
+    projetoUuid: string,
+    fase: string,
+    client?: PoolClient,
+  ): Promise<void> {
+    const db = client || this.pool;
+    await db.query(
+      'UPDATE projetos SET fase_atual = $1 WHERE uuid = $2',
+      [fase, projetoUuid],
+    );
+  }
+
+  /**
    * Remove todas as tecnologias do projeto
    */
   async removerTecnologias(
@@ -1075,5 +1090,35 @@ export class ProjetosDao {
       .map(r => ({ email: r.email, usuario_uuid: r.usuario_uuid, professor_uuid: r.professor_uuid, nome: r.nome }));
 
     return { alunos, professores };
+  }
+
+  /**
+   * Busca usuários por termo (nome ou email)
+   */
+  async buscarUsuarios(termo: string): Promise<any[]> {
+    const termoBusca = `%${termo.toLowerCase()}%`;
+
+    const result = await this.pool.query(
+      `SELECT
+         u.email,
+         u.uuid AS usuario_uuid,
+         u.nome,
+         u.tipo,
+         u.avatar_url,
+         a.uuid AS aluno_uuid,
+         p.uuid AS professor_uuid
+       FROM usuarios u
+       LEFT JOIN alunos a ON a.usuario_uuid = u.uuid AND u.tipo = 'ALUNO'
+       LEFT JOIN professores p ON p.usuario_uuid = u.uuid AND u.tipo = 'PROFESSOR'
+       WHERE (LOWER(u.nome) LIKE $1 OR LOWER(u.email) LIKE $1)
+       LIMIT 20`,
+      [termoBusca],
+    );
+
+    return result.rows.map(row => ({
+      ...row,
+      // Garante que usuario_uuid seja retornado como 'uuid' para o frontend se necessario, 
+      // mas mantemos a estrutura clara de aluno/professor
+    }));
   }
 }

@@ -404,6 +404,10 @@ export class ProjetosService {
         client,
       );
 
+      // Calcular e atualizar fase atual
+      const novaFase = this.calcularFaseAtual(dados);
+      await this.projetosDao.atualizarFaseAtual(projetoUuid, novaFase, client);
+
       await client.query('COMMIT');
 
       return {
@@ -845,5 +849,29 @@ export class ProjetosService {
       .filter(email => !encontrados.has(email));
 
     return { alunos, professores, invalidos };
+  }
+
+  /**
+   * Busca usuários por termo para autocomplete
+   */
+  async buscarUsuarios(termo: string) {
+    if (!termo || termo.length < 3) {
+      return [];
+    }
+    return this.projetosDao.buscarUsuarios(termo);
+  }
+
+  /**
+   * Calcula a fase atual do projeto baseado no preenchimento
+   */
+  private calcularFaseAtual(dados: Passo4ProjetoDto): string {
+    const hasContent = (fase: any) =>
+      fase && fase.descricao && fase.descricao.trim().length >= 50 && fase.anexos && fase.anexos.length > 0;
+
+    if (hasContent(dados.implementacao)) return 'Lançamento';
+    if (hasContent(dados.prototipagem)) return 'Implementação';
+    if (hasContent(dados.modelagem)) return 'Prototipagem';
+    if (hasContent(dados.ideacao)) return 'Modelagem';
+    return 'Ideação';
   }
 }

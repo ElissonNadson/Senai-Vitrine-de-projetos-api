@@ -23,7 +23,7 @@ import {
 
 @Controller('projetos')
 export class ProjetosController {
-  constructor(private readonly projetosService: ProjetosService) {}
+  constructor(private readonly projetosService: ProjetosService) { }
 
   /**
    * POST /projetos/passo1
@@ -128,13 +128,23 @@ export class ProjetosController {
   }
 
   /**
+   * Resolve e-mails para UUIDs
    * POST /projetos/resolver-usuarios
-   * Resolve emails para UUIDs de alunos/professores
    */
   @Post('resolver-usuarios')
   @UseGuards(AuthGuard('jwt'))
-  async resolverUsuarios(@Body() dados: { emails: string[] }) {
-    return this.projetosService.resolverUsuariosPorEmail(dados.emails);
+  async resolverUsuarios(@Body() body: { emails: string[] }) {
+    return this.projetosService.resolverUsuariosPorEmail(body.emails);
+  }
+
+  /**
+   * Busca usuários para autocomplete
+   * GET /projetos/usuarios/busca?termo=...
+   */
+  @Get('usuarios/busca')
+  @UseGuards(AuthGuard('jwt'))
+  async buscarUsuarios(@Query('termo') termo: string) {
+    return this.projetosService.buscarUsuarios(termo);
   }
 
   /**
@@ -176,7 +186,13 @@ export class ProjetosController {
    */
   @Get(':uuid')
   async buscarProjeto(@Param('uuid') uuid: string, @CurrentUser() usuario?: any) {
-    return this.projetosService.buscarProjeto(uuid, usuario);
+    console.log(`[API] Buscando projeto: ${uuid}, Usuario: ${usuario?.uuid || 'Anonimo'}`);
+    try {
+      return await this.projetosService.buscarProjeto(uuid, usuario);
+    } catch (error) {
+       console.error(`[API] Erro ao buscar projeto ${uuid}:`, error);
+       throw error;
+    }
   }
 
   /**
