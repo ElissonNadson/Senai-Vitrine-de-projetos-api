@@ -581,6 +581,8 @@ Authorization: Bearer <token>
 
 Token expira em 24 horas.
 
+Também é emitido um cookie `token` (HTTP-only). A autenticação suporta tanto o cookie `token` quanto o header `Authorization` (mantemos suporte legado ao cookie `accessToken` apenas para compatibilidade).
+
 ---
 
 ## Validações de Domínio
