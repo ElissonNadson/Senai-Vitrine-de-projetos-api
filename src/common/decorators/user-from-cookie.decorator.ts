@@ -18,7 +18,7 @@ export const UserFromCookie = createParamDecorator(
       // Como não podemos injetar serviços diretamente aqui,
       // criamos uma instância do JwtService manualmente.
       const jwtService = new JwtService({
-        secret: process.env.JWT_SECRET_KEY,
+        secret: process.env.JWT_SECRET,
       });
 
       const decoded = jwtService.verify(token);

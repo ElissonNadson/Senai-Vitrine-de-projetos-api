@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Pool } from 'pg';
 import { NotificacoesDao } from './notificacoes.dao';
+import { enqueueEmail } from '../../common/publishers/emailPublisher';
 
 @Injectable()
 export class NotificacoesService {
@@ -34,6 +35,29 @@ export class NotificacoesService {
         mensagem,
         linkRelacionado,
       );
+
+      // Opcional: envia email via fila RabbitMQ, se habilitado por env
+      if (process.env.SEND_EMAIL_NOTIFICATIONS === 'true') {
+        try {
+          const userResult = await this.pool.query(
+            'SELECT nome, email FROM usuarios WHERE uuid = $1 AND ativo = TRUE',
+            [uuid],
+          );
+          const user = userResult.rows[0];
+          if (user && user.email) {
+            await enqueueEmail({
+              to: { email: user.email, name: user.nome },
+              subject: titulo,
+              textContent: mensagem,
+              htmlContent: `<p>${mensagem.replace(/\n/g, '<br/>')}</p>${linkRelacionado ? `<p><a href="${linkRelacionado}">Ver detalhes</a></p>` : ''}`,
+              tipo,
+              linkRelacionado,
+            });
+          }
+        } catch (err) {
+          // Não bloqueia criação de notificação se email falhar
+        }
+      }
     }
   }
 

@@ -62,7 +62,7 @@ export class AuthMiddleware implements NestMiddleware {
 
   private extractTokenFromHeader(request: Request): string | undefined {
     // Tenta obter o token de dois lugares: do cabeçalho Authorization ou do cookie
-    const tokenFromCookie = request.cookies?.accessToken || request.cookies?.token;
+    const tokenFromCookie = request.cookies?.token || request.cookies?.accessToken;
     const authHeader = request.headers.authorization as string | undefined;
     let tokenFromHeader: string | undefined;
 

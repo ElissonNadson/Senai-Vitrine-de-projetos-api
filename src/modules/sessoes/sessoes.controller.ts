@@ -36,9 +36,9 @@ export class SessoesController {
       return authHeader.substring(7);
     }
     
-    // Fallback para cookie
+    // Fallback para cookie (prioriza "token" e mantém suporte ao legado)
     const cookies = request.cookies || {};
-    return cookies.accessToken || '';
+    return cookies.token || cookies.accessToken || '';
   }
 
   /**

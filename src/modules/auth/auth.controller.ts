@@ -98,8 +98,20 @@ export class AuthController {
    */
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
-    return this.authService.renovarToken(refreshTokenDto.token);
+  async refreshToken(@Body() refreshTokenDto: RefreshTokenDto, @Res() res: Response) {
+    const result = await this.authService.renovarToken(refreshTokenDto.token);
+
+    // Emite novo token no cookie padronizado "token"
+    res.cookie('token', result.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Lax',
+    });
+
+    // Compatibilidade: opcionalmente remove cookie legado se existir
+    res.clearCookie('accessToken');
+
+    return res.json(result);
   }
 
   /**
@@ -115,11 +127,16 @@ export class AuthController {
     
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.substring(7);
+    } else if (req.cookies?.token) {
+      token = req.cookies.token;
     } else if (req.cookies?.accessToken) {
       token = req.cookies.accessToken;
     }
 
     const result = await this.authService.logout(res, token);
+
+    // Compatibilidade: garante remoção do cookie legado
+    res.clearCookie('accessToken');
     return res.json(result);
   }
 }

@@ -9,7 +9,7 @@ import { JwtPayload } from '../../../common/interfaces/jwt-payload.interface';
  */
 const cookieOrHeaderExtractor = (request: Request): string | null => {
   // 1. Primeiro tenta do cookie
-  const tokenFromCookie = request.cookies?.accessToken || request.cookies?.token;
+  const tokenFromCookie = request.cookies?.token || request.cookies?.accessToken;
   if (tokenFromCookie) {
     return tokenFromCookie;
   }
