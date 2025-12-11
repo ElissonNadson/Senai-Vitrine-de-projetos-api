@@ -19,7 +19,7 @@ import { AuthRateLimitGuard } from '../../common/guards/rate-limit.guard';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   /**
    * GET /auth/google
@@ -71,7 +71,7 @@ export class AuthController {
     res.cookie('token', authResponse.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Lax',
+      sameSite: 'lax',
     });
 
     // Sempre redireciona para frontend com dados codificados
@@ -105,7 +105,7 @@ export class AuthController {
     res.cookie('token', result.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Lax',
+      sameSite: 'lax',
     });
 
     // Compatibilidade: opcionalmente remove cookie legado se existir
@@ -124,7 +124,7 @@ export class AuthController {
     // Extrai token para encerrar sessão
     const authHeader = req.headers.authorization;
     let token: string | undefined;
-    
+
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.substring(7);
     } else if (req.cookies?.token) {

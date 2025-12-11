@@ -186,7 +186,6 @@ export class ProjetosController {
    */
   @Get(':uuid')
   async buscarProjeto(@Param('uuid') uuid: string, @CurrentUser() usuario?: any) {
-    console.log(`[API] Buscando projeto: ${uuid}, Usuario: ${usuario?.uuid || 'Anonimo'}`);
     try {
       return await this.projetosService.buscarProjeto(uuid, usuario);
     } catch (error) {
@@ -217,5 +216,24 @@ export class ProjetosController {
   @UseGuards(AuthGuard('jwt'))
   async deletarProjeto(@Param('uuid') uuid: string, @CurrentUser() usuario: any) {
     return this.projetosService.deletarProjeto(uuid, usuario);
+  }
+
+  /**
+   * POST /projetos/:uuid/curtir
+   * Curte um projeto
+   */
+  @Post(':uuid/curtir')
+  @UseGuards(AuthGuard('jwt'))
+  async curtirProjeto(@Param('uuid') uuid: string) {
+    return this.projetosService.curtirProjeto(uuid);
+  }
+
+  /**
+   * POST /projetos/:uuid/visualizar
+   * Registra visualização de um projeto
+   */
+  @Post(':uuid/visualizar')
+  async visualizarProjeto(@Param('uuid') uuid: string) {
+    return this.projetosService.visualizarProjeto(uuid);
   }
 }

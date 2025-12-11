@@ -39,15 +39,14 @@ export class ProjetosDao {
     // Criar projeto com novos campos
     const result = await db.query(
       `INSERT INTO projetos (
-        titulo, descricao, categoria, departamento_uuid, 
+        titulo, descricao, categoria, 
         criado_por_uuid, lider_uuid, fase_atual, status
-      ) VALUES ($1, $2, $3, $4, $5, $5, 'IDEACAO', 'RASCUNHO')
+      ) VALUES ($1, $2, $3, $4, $4, 'IDEACAO', 'RASCUNHO')
       RETURNING uuid`,
       [
         dados.titulo,
         dados.descricao,
         dados.categoria,
-        dados.departamento_uuid || null,
         usuarioUuid
       ],
     );
@@ -112,42 +111,7 @@ export class ProjetosDao {
     }
   }
 
-  /**
-   * Adiciona tecnologias ao projeto (Passo 3)
-   */
-  async adicionarTecnologias(
-    projetoUuid: string,
-    tecnologiasUuids: string[],
-    client?: PoolClient,
-  ): Promise<void> {
-    const db = client || this.pool;
 
-    for (const tecnologiaUuid of tecnologiasUuids) {
-      await db.query(
-        `INSERT INTO projetos_tecnologias (projeto_uuid, tecnologia_uuid)
-         VALUES ($1, $2)`,
-        [projetoUuid, tecnologiaUuid],
-      );
-    }
-  }
-
-  /**
-   * Atualiza projeto com informações adicionais (Passo 3)
-   */
-  async atualizarPasso3(
-    projetoUuid: string,
-    dados: any,
-    client?: PoolClient,
-  ): Promise<void> {
-    const db = client || this.pool;
-
-    await db.query(
-      `UPDATE projetos 
-       SET objetivos = $1, resultados_esperados = $2
-       WHERE uuid = $3`,
-      [dados.objetivos, dados.resultados_esperados, projetoUuid],
-    );
-  }
 
   /**
    * Finaliza projeto e publica (Passo 4)
@@ -162,18 +126,15 @@ export class ProjetosDao {
     // Campos opcionais
     const bannerUrl = dados.banner_url || null;
     const repositorioUrl = dados.repositorio_url || null;
-    const demoUrl = dados.demo_url || null;
-
     await db.query(
       `UPDATE projetos 
        SET banner_url = COALESCE($1, banner_url), 
            repositorio_url = COALESCE($2, repositorio_url),
-           demo_url = COALESCE($3, demo_url),
            fase_atual = 'IDEACAO',
            status = 'PUBLICADO',
            data_publicacao = CURRENT_TIMESTAMP
-       WHERE uuid = $4`,
-      [bannerUrl, repositorioUrl, demoUrl, projetoUuid],
+       WHERE uuid = $3`,
+      [bannerUrl, repositorioUrl, projetoUuid],
     );
   }
 
@@ -182,7 +143,7 @@ export class ProjetosDao {
    */
   async buscarPorUuid(uuid: string): Promise<any> {
     const result = await this.pool.query(
-      `SELECT p.*, 
+      `SELECT p.*, p.categoria,
               d.nome as departamento_nome, d.cor_hex as departamento_cor,
               u.nome as criado_por_nome, u.email as criado_por_email
        FROM projetos p
@@ -192,7 +153,12 @@ export class ProjetosDao {
       [uuid],
     );
 
-    return result.rows[0] || null;
+    const projeto = result.rows[0] || null;
+    if (projeto) {
+      delete projeto.descricao_curta;
+      delete projeto.sigla;
+    }
+    return projeto;
   }
 
   /**
@@ -272,7 +238,7 @@ export class ProjetosDao {
     // 2. Para cada fase, buscar anexos
     for (const fase of fasesResult.rows) {
       const anexosResult = await this.pool.query(
-        `SELECT uuid as id, tipo, nome_arquivo, url_arquivo, tamanho_bytes, mime_type
+        `SELECT uuid as id, tipo_anexo as tipo, nome_arquivo, url_arquivo, tamanho_bytes, mime_type
          FROM projetos_fases_anexos
          WHERE fase_uuid = $1`,
         [fase.uuid],
@@ -344,7 +310,7 @@ export class ProjetosDao {
         p.criado_em, p.data_publicacao, p.status, p.visibilidade,
         p.itinerario, p.lab_maker, p.participou_saga,
         d.nome as departamento, d.cor_hex as departamento_cor,
-        c.nome as curso_nome, c.sigla as curso_sigla,
+        c.nome as curso_nome,
         -- Subquery para autores (JSON array)
         (
           SELECT COALESCE(json_agg(json_build_object(
@@ -366,18 +332,6 @@ export class ProjetosDao {
           INNER JOIN usuarios u ON prof.usuario_uuid = u.uuid
           WHERE pp.projeto_uuid = p.uuid
         ) as orientadores,
-        -- Subquery para tecnologias (JSON array)
-        (
-          SELECT COALESCE(json_agg(json_build_object(
-            'uuid', t.uuid,
-            'nome', t.nome,
-            'icone', t.icone,
-            'cor', t.cor_hex
-          ) ORDER BY t.nome), '[]'::json)
-          FROM projetos_tecnologias pt
-          INNER JOIN tecnologias t ON pt.tecnologia_uuid = t.uuid
-          WHERE pt.projeto_uuid = p.uuid
-        ) as tecnologias,
         -- Total de autores
         (SELECT COUNT(*) FROM projetos_alunos pa WHERE pa.projeto_uuid = p.uuid) as total_autores
       FROM projetos p
@@ -484,29 +438,9 @@ export class ProjetosDao {
       valores.push(dados.descricao);
     }
 
-    if (dados.objetivos !== undefined) {
-      campos.push(`objetivos = $${paramIndex++}`);
-      valores.push(dados.objetivos);
-    }
-
-    if (dados.resultados_esperados !== undefined) {
-      campos.push(`resultados_esperados = $${paramIndex++}`);
-      valores.push(dados.resultados_esperados);
-    }
-
-    if (dados.departamento_uuid !== undefined) {
-      campos.push(`departamento_uuid = $${paramIndex++}`);
-      valores.push(dados.departamento_uuid);
-    }
-
     if (dados.repositorio_url !== undefined) {
       campos.push(`repositorio_url = $${paramIndex++}`);
       valores.push(dados.repositorio_url);
-    }
-
-    if (dados.demo_url !== undefined) {
-      campos.push(`demo_url = $${paramIndex++}`);
-      valores.push(dados.demo_url);
     }
 
     if (dados.itinerario !== undefined) {
@@ -570,6 +504,26 @@ export class ProjetosDao {
     await db.query(
       'DELETE FROM projetos_tecnologias WHERE projeto_uuid = $1',
       [projetoUuid],
+    );
+  }
+
+  /**
+   * Incrementa contador de curtidas
+   */
+  async incrementarCurtidas(uuid: string): Promise<void> {
+    await this.pool.query(
+      'UPDATE projetos SET curtidas_count = COALESCE(curtidas_count, 0) + 1 WHERE uuid = $1',
+      [uuid]
+    );
+  }
+
+  /**
+   * Incrementa contador de visualizações
+   */
+  async incrementarVisualizacoes(uuid: string): Promise<void> {
+    await this.pool.query(
+      'UPDATE projetos SET visualizacoes_count = COALESCE(visualizacoes_count, 0) + 1 WHERE uuid = $1',
+      [uuid]
     );
   }
 
@@ -686,11 +640,9 @@ export class ProjetosDao {
         } : null,
         curso: row.curso_nome ? {
           nome: row.curso_nome,
-          sigla: row.curso_sigla,
         } : null,
         autores: row.autores || [],
         orientadores: row.orientadores || [],
-        tecnologias: row.tecnologias || [],
         total_autores: parseInt(row.total_autores || '0'),
       };
 
@@ -721,8 +673,8 @@ export class ProjetosDao {
            modalidade = $3,
            unidade_curricular = $4,
            itinerario = $5,
-           senai_lab = $6,
-           saga_senai = $7,
+           lab_maker = $6,
+           participou_saga = $7,
            atualizado_em = CURRENT_TIMESTAMP
        WHERE uuid = $8`,
       [
@@ -812,17 +764,15 @@ export class ProjetosDao {
 
     await db.query(
       `UPDATE projetos 
-       SET has_repositorio = $1,
-           tipo_repositorio = $2,
-           link_repositorio = $3,
-           codigo_visibilidade = $4,
-           anexos_visibilidade = $5,
-           aceitou_termos = $6,
-           atualizado_em = CURRENT_TIMESTAMP
-       WHERE uuid = $7`,
+        SET has_repositorio = $1,
+            link_repositorio = $2,
+            codigo_visibilidade = $3,
+            anexos_visibilidade = $4,
+            aceitou_termos = $5,
+            atualizado_em = CURRENT_TIMESTAMP
+        WHERE uuid = $6`,
       [
         dados.has_repositorio,
-        dados.tipo_repositorio || null,
         dados.link_repositorio || null,
         dados.codigo_visibilidade || 'Público',
         dados.anexos_visibilidade || 'Público',

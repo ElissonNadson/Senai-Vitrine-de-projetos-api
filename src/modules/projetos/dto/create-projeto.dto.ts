@@ -56,12 +56,6 @@ export class Passo1ProjetoDto {
     'Outro'
   ], { message: 'Categoria inválida' })
   categoria: string;
-
-  @IsUUID('4', { message: 'UUID do departamento inválido' })
-  @IsOptional()
-  departamento_uuid?: string;
-
-  // Banner será enviado via multipart/form-data separadamente
 }
 
 /**
@@ -209,9 +203,6 @@ export class Passo5ProjetoDto {
   has_repositorio: boolean;
 
   @IsString()
-  @IsOptional()
-  @IsIn(['arquivo', 'link'], { message: 'Tipo de repositório deve ser "arquivo" ou "link"' })
-  tipo_repositorio?: string;
 
   @IsString()
   @IsOptional()
@@ -250,37 +241,16 @@ export class UpdateProjetoDto {
   @IsString()
   @IsOptional()
   @MinLength(50)
+  @IsString()
+  @IsOptional()
+  @MinLength(50)
   @MaxLength(5000)
   descricao?: string;
 
   @IsString()
   @IsOptional()
-  @MaxLength(500)
-  objetivos?: string;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(500)
-  resultados_esperados?: string;
-
-  @IsUUID('4')
-  @IsOptional()
-  departamento_uuid?: string;
-
-  @IsString()
-  @IsOptional()
   @MaxLength(200)
   repositorio_url?: string;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(200)
-  demo_url?: string;
-
-  @IsArray()
-  @IsUUID('4', { each: true })
-  @IsOptional()
-  tecnologias_uuids?: string[];
 
   @IsBoolean()
   @IsOptional()

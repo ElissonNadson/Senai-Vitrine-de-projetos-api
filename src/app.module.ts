@@ -18,12 +18,18 @@ import { BullModule } from '@nestjs/bullmq';
 import { ScheduleModule } from '@nestjs/schedule';
 import { JwtModule } from '@nestjs/jwt';
 import { EmailModule } from './modules/email/email.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       envFilePath: '.env',
       isGlobal: true,
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'uploads'),
+      serveRoot: '/uploads',
     }),
     ScheduleModule.forRoot(),
     BullModule.forRoot({

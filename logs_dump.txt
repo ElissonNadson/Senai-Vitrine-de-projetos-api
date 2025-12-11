@@ -1,0 +1,125 @@
+
+> vitrine-senai@0.0.0 start:prod
+> node dist/src/main
+
+[32m[Nest] 18  - [39m12/10/2025, 4:20:00 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +77ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMulterModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mEmailModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mServeStaticModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScheduleModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUploadModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +0ms[39m
+Erro ao conectar ao banco de dados PostgreSQL: Error: getaddrinfo EAI_AGAIN vitrinesenaifeira.cloud
+    at /usr/src/app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async InstanceWrapper.useFactory [as metatype] (/usr/src/app/dist/src/common/database/database.module.js:36:40)
+    at async Injector.instantiateClass (/usr/src/app/node_modules/@nestjs/core/injector/injector.js:369:37)
+    at async callback (/usr/src/app/node_modules/@nestjs/core/injector/injector.js:65:34)
+    at async Injector.resolveConstructorParams (/usr/src/app/node_modules/@nestjs/core/injector/injector.js:144:24)
+    at async Injector.loadInstance (/usr/src/app/node_modules/@nestjs/core/injector/injector.js:70:13)
+    at async Injector.loadProvider (/usr/src/app/node_modules/@nestjs/core/injector/injector.js:97:9)
+    at async Injector.lookupComponentInImports (/usr/src/app/node_modules/@nestjs/core/injector/injector.js:289:17)
+    at async Injector.lookupComponentInParentModules (/usr/src/app/node_modules/@nestjs/core/injector/injector.js:252:33) {
+  errno: -3001,
+  code: 'EAI_AGAIN',
+  syscall: 'getaddrinfo',
+  hostname: 'vitrinesenaifeira.cloud'
+}
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDatabaseModule dependencies initialized[39m[38;5;3m +4994ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCursosModule dependencies initialized[39m[38;5;3m +3ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTurmasModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDepartamentosModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDashboardModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mEtapasModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mProgressaoModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mProjetosModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificacoesModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPerfilModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mSessoesModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/auth}:[39m[38;5;3m +28ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/google, GET} route[39m[38;5;3m +4ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/google/callback, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/refresh, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/logout, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mSessoesController {/auth/sessions}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/sessions, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/sessions/others, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/sessions/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mNotificacoesController {/notificacoes}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/notificacoes, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/notificacoes/nao-lidas/contar, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/notificacoes/:uuid/marcar-lida, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/notificacoes/marcar-todas-lidas, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/notificacoes/:uuid, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPerfilController {/perfil}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/perfil/completar/aluno, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/perfil/completar/professor, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/perfil, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/perfil, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mCursosController {/cursos}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/cursos, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/cursos/:uuid, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/cursos/sigla/:sigla, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/cursos/:uuid/unidades, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mTurmasController {/turmas}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/turmas, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/turmas/:uuid, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/turmas/codigo/:codigo, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mDepartamentosController {/departamentos}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/departamentos, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/departamentos/:uuid, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/departamentos/sigla/:sigla, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mDashboardController {/dashboard}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/dashboard, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mProjetosController {/projetos}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/projetos/passo1, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/projetos/:uuid/passo2, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/projetos/:uuid/passo3, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/projetos/:uuid/passo4, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/projetos/:uuid/passo5, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/projetos/validar-equipe, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/projetos/:uuid/auditoria, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/projetos/resolver-usuarios, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/projetos/usuarios/busca, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/projetos, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/projetos/meus, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/projetos/:uuid, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/projetos/:uuid, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/projetos/:uuid, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/projetos/:uuid/curtir, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/projetos/:uuid/visualizar, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUploadController {/upload}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/upload/banner, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/upload/avatar, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/upload/anexo, POST} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/upload/tipos, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mEtapasController {/etapas}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/etapas/projeto/:projetoUuid, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/etapas/projeto/:projetoUuid, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/etapas/:uuid, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/etapas/:uuid/anexos, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/etapas/:uuid, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/etapas/:uuid/feedback, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/etapas/:uuid/concluir, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/etapas/:uuid, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/etapas/anexo/:anexoUuid, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mProgressaoController {/progressao}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/progressao/verificar/:projetoUuid, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/progressao/forcar/:projetoUuid, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/progressao/automatica/:projetoUuid, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/progressao/historico/:projetoUuid, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/progressao/transferir-lideranca/:projetoUuid, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[EmailService] [39m[32mEnvio de emails via RabbitMQ desabilitado (SEND_EMAIL_NOTIFICATIONS != true)[39m
+[32m[Nest] 18  - [39m12/10/2025, 4:20:05 PM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +21ms[39m
+Servidor rodando na porta 3000

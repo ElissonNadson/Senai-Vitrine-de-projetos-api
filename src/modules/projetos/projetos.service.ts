@@ -472,7 +472,6 @@ export class ProjetosService {
       // Captura estado anterior
       const dadosAnteriores = {
         has_repositorio: projeto.has_repositorio,
-        tipo_repositorio: projeto.tipo_repositorio,
         link_repositorio: projeto.link_repositorio,
         codigo_visibilidade: projeto.codigo_visibilidade,
         anexos_visibilidade: projeto.anexos_visibilidade,
@@ -697,16 +696,6 @@ export class ProjetosService {
       // Atualiza campos básicos
       await this.projetosDao.atualizarProjeto(projetoUuid, dados, client);
 
-      // Atualiza tecnologias se fornecidas
-      if (dados.tecnologias_uuids) {
-        await this.projetosDao.removerTecnologias(projetoUuid, client);
-        await this.projetosDao.adicionarTecnologias(
-          projetoUuid,
-          dados.tecnologias_uuids,
-          client,
-        );
-      }
-
       await client.query('COMMIT');
 
       return { mensagem: 'Projeto atualizado com sucesso' };
@@ -868,10 +857,18 @@ export class ProjetosService {
     const hasContent = (fase: any) =>
       fase && fase.descricao && fase.descricao.trim().length >= 50 && fase.anexos && fase.anexos.length > 0;
 
-    if (hasContent(dados.implementacao)) return 'Lançamento';
-    if (hasContent(dados.prototipagem)) return 'Implementação';
-    if (hasContent(dados.modelagem)) return 'Prototipagem';
-    if (hasContent(dados.ideacao)) return 'Modelagem';
-    return 'Ideação';
+    if (hasContent(dados.implementacao)) return 'IMPLEMENTACAO';
+    if (hasContent(dados.prototipagem)) return 'IMPLEMENTACAO'; // Se já fez prototipagem, vai para implementação
+    if (hasContent(dados.modelagem)) return 'PROTOTIPAGEM';
+    if (hasContent(dados.ideacao)) return 'MODELAGEM';
+    return 'IDEACAO';
+  }
+
+  async curtirProjeto(uuid: string): Promise<void> {
+    await this.projetosDao.incrementarCurtidas(uuid);
+  }
+
+  async visualizarProjeto(uuid: string): Promise<void> {
+    await this.projetosDao.incrementarVisualizacoes(uuid);
   }
 }

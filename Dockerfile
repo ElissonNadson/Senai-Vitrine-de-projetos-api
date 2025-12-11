@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Instala todas as dependências (dev + prod) para o build
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Copia o restante da aplicação
 COPY . .
@@ -25,7 +25,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Instala apenas dependências de produção
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --legacy-peer-deps
 
 
 # -------- STAGE 3: Production (Final) --------
