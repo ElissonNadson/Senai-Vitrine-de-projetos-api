@@ -17,7 +17,7 @@ import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 export class PerfilService {
   constructor(
     private readonly perfilDao: PerfilDao,
-  ) {}
+  ) { }
 
   /**
    * Completa cadastro de aluno
@@ -147,7 +147,7 @@ export class PerfilService {
   async atualizarPerfil(
     dto: AtualizarPerfilDto,
     user: JwtPayload,
-  ): Promise<any> {    
+  ): Promise<any> {
     const client = await this.perfilDao.getClient();
 
     try {
@@ -215,6 +215,22 @@ export class PerfilService {
     } catch (error) {
       console.error('Erro ao buscar perfil:', error.message);
       throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Busca usuários por nome ou email
+   */
+  async buscarUsuarios(termo: string, tipo?: 'ALUNO' | 'PROFESSOR'): Promise<any[]> {
+    if (!termo || termo.length < 3) {
+      return [];
+    }
+
+    const client = await this.perfilDao.getClient();
+    try {
+      return await this.perfilDao.buscarUsuarios(client, termo, tipo);
     } finally {
       client.release();
     }

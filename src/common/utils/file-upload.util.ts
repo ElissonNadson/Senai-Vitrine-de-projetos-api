@@ -122,7 +122,7 @@ export async function validarMagicNumbers(
     if (!config.mimeTypesPermitidos.includes(tipoDetectado.mime)) {
       throw new BadRequestException(
         `Arquivo inválido. Tipo detectado: ${tipoDetectado.mime}. ` +
-          `Tipos permitidos: ${config.mimeTypesPermitidos.join(', ')}`,
+        `Tipos permitidos: ${config.mimeTypesPermitidos.join(', ')}`,
       );
     }
 
@@ -257,7 +257,7 @@ export function gerarNomeUnico(nomeOriginal: string): string {
  */
 export async function salvarArquivoLocal(
   arquivo: Express.Multer.File,
-  pasta: 'banners' | 'anexos' | 'avatars',
+  pasta: string,
 ): Promise<string> {
   try {
     const uploadPath = process.env.UPLOAD_PATH || './uploads';
@@ -274,7 +274,7 @@ export async function salvarArquivoLocal(
     await fs.writeFile(caminhoCompleto, arquivo.buffer);
 
     // Retornar caminho relativo
-    return `/${pasta}/${nomeUnico}`;
+    return `/api/uploads/${pasta}/${nomeUnico}`;
   } catch (error) {
     throw new BadRequestException(
       'Erro ao salvar arquivo: ' + error.message,

@@ -17,6 +17,15 @@ const REGEX_EMAIL_PROFESSOR = /^[a-zA-Z0-9._-]+@ba\.senai\.br$/;
 const REGEX_EMAIL_DOCENTE = /^[a-zA-Z0-9._-]+@ba\.docente\.senai\.br$/;
 
 /**
+ * Emails permitidos externamente (Admins/Convidados)
+ */
+const EMAILS_PERMITIDOS = [
+  'nadsonnodachi@gmail.com',
+  'admin@admin.com',
+  'senaifeira@senaifeira'
+];
+
+/**
  * Domínios bloqueados (emails pessoais e outros estados)
  */
 const DOMINIOS_BLOQUEADOS = [
@@ -65,7 +74,7 @@ export function validarEmailAluno(email: string): boolean {
   if (!email || typeof email !== 'string') {
     return false;
   }
-  
+
   const emailLowerCase = email.toLowerCase().trim();
   return REGEX_EMAIL_ALUNO.test(emailLowerCase);
 }
@@ -88,8 +97,13 @@ export function validarEmailProfessor(email: string): boolean {
   if (!email || typeof email !== 'string') {
     return false;
   }
-  
+
   const emailLowerCase = email.toLowerCase().trim();
+
+  if (EMAILS_PERMITIDOS.includes(emailLowerCase)) {
+    return true;
+  }
+
   return REGEX_EMAIL_PROFESSOR.test(emailLowerCase) || REGEX_EMAIL_DOCENTE.test(emailLowerCase);
 }
 
@@ -111,9 +125,9 @@ export function verificarDominioBloqueado(email: string): boolean {
   if (!email || typeof email !== 'string') {
     return false;
   }
-  
+
   const emailLowerCase = email.toLowerCase().trim();
-  
+
   return DOMINIOS_BLOQUEADOS.some(dominio =>
     emailLowerCase.endsWith(dominio),
   );
@@ -141,15 +155,15 @@ export function detectarTipoUsuario(email: string): TipoUsuario {
   if (!email || typeof email !== 'string') {
     return TipoUsuario.INVALIDO;
   }
-  
+
   if (validarEmailAluno(email)) {
     return TipoUsuario.ALUNO;
   }
-  
+
   if (validarEmailProfessor(email)) {
     return TipoUsuario.PROFESSOR;
   }
-  
+
   return TipoUsuario.INVALIDO;
 }
 
@@ -194,16 +208,16 @@ export function censurarEmail(email: string): string {
   if (!email || typeof email !== 'string' || !email.includes('@')) {
     return '***@***';
   }
-  
+
   const [nome, dominio] = email.split('@');
-  
+
   if (nome.length <= 2) {
     return `***@${dominio}`;
   }
-  
+
   const primeiraLetra = nome.charAt(0);
   const ultimaLetra = nome.charAt(nome.length - 1);
-  
+
   return `${primeiraLetra}***${ultimaLetra}@${dominio}`;
 }
 
@@ -221,6 +235,6 @@ export function extrairNomeUsuario(email: string): string {
   if (!email || typeof email !== 'string' || !email.includes('@')) {
     return '';
   }
-  
+
   return email.split('@')[0];
 }

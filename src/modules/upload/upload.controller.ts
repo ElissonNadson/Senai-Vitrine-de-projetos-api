@@ -15,7 +15,7 @@ import { UploadRateLimitGuard } from '../../common/guards/rate-limit.guard';
 @Controller('upload')
 @UseGuards(UploadRateLimitGuard)
 export class UploadController {
-  constructor(private readonly uploadService: UploadService) {}
+  constructor(private readonly uploadService: UploadService) { }
 
   /**
    * POST /upload/banner
@@ -23,8 +23,11 @@ export class UploadController {
    */
   @Post('banner')
   @UseInterceptors(FileInterceptor('file'))
-  async uploadBanner(@UploadedFile() file: Express.Multer.File) {
-    return this.uploadService.uploadBanner(file);
+  async uploadBanner(
+    @UploadedFile() file: Express.Multer.File,
+    @Query('context') context?: string,
+  ) {
+    return this.uploadService.uploadBanner(file, context);
   }
 
   /**

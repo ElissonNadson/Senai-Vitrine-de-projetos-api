@@ -3,7 +3,7 @@ import { Pool, PoolClient } from 'pg';
 
 @Injectable()
 export class PerfilDao {
-  constructor(@Inject('PG_POOL') private readonly pool: Pool) {}
+  constructor(@Inject('PG_POOL') private readonly pool: Pool) { }
 
   /**
    * Obtém cliente de conexão para transações
@@ -74,13 +74,7 @@ export class PerfilDao {
            instagram_url = COALESCE($9, instagram_url),
            tiktok_url = COALESCE($10, tiktok_url),
            facebook_url = COALESCE($11, facebook_url),
-           cep = COALESCE($12, cep),
-           logradouro = COALESCE($13, logradouro),
-           numero = COALESCE($14, numero),
-           complemento = COALESCE($15, complemento),
-           bairro = COALESCE($16, bairro),
-           cidade = COALESCE($17, cidade),
-           estado = COALESCE($18, estado),
+
            atualizado_em = NOW()
        WHERE usuario_uuid = $19
        RETURNING *`,
@@ -96,13 +90,7 @@ export class PerfilDao {
         dados.instagram_url,
         dados.tiktok_url,
         dados.facebook_url,
-        dados.cep,
-        dados.logradouro,
-        dados.numero,
-        dados.complemento,
-        dados.bairro,
-        dados.cidade,
-        dados.estado,
+
         usuarioUuid,
       ],
     );
@@ -174,5 +162,36 @@ export class PerfilDao {
       [matricula, usuarioUuid],
     );
     return result.rows.length > 0;
+  }
+
+  /**
+   * Busca usuários por nome ou email (autocomplete)
+   */
+  async buscarUsuarios(
+    client: PoolClient,
+    termo: string,
+    tipo?: 'ALUNO' | 'PROFESSOR'
+  ): Promise<any[]> {
+    let query = `
+      SELECT u.uuid, u.nome, u.email, u.avatar_url, u.tipo
+      FROM usuarios u
+      WHERE u.ativo = TRUE 
+      AND (
+        u.nome ILIKE $1 
+        OR u.email ILIKE $1
+      )
+    `;
+
+    const params = [`%${termo}%`];
+
+    if (tipo) {
+      query += ` AND u.tipo = $2`;
+      params.push(tipo);
+    }
+
+    query += ` ORDER BY u.nome LIMIT 10`;
+
+    const result = await client.query(query, params);
+    return result.rows;
   }
 }

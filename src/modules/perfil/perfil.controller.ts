@@ -7,6 +7,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { PerfilService } from './perfil.service';
@@ -21,7 +22,7 @@ import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 @Controller('perfil')
 @UseGuards(AuthGuard('jwt'))
 export class PerfilController {
-  constructor(private readonly perfilService: PerfilService) {}
+  constructor(private readonly perfilService: PerfilService) { }
 
   /**
    * POST /perfil/completar/aluno
@@ -69,5 +70,17 @@ export class PerfilController {
   @Get()
   async buscarPerfil(@CurrentUser() user: JwtPayload) {
     return this.perfilService.buscarPerfil(user);
+  }
+
+  /**
+   * GET /perfil/pesquisar
+   * Busca usuários por nome ou email
+   */
+  @Get('pesquisar')
+  async pesquisarUsuarios(
+    @Query('q') term: string,
+    @Query('tipo') tipo?: 'ALUNO' | 'PROFESSOR',
+  ) {
+    return this.perfilService.buscarUsuarios(term, tipo);
   }
 }

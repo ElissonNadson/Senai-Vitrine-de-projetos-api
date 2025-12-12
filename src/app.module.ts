@@ -12,6 +12,7 @@ import { EtapasModule } from './modules/etapas/etapas.module';
 import { ProgressaoModule } from './modules/progressao/progressao.module';
 import { NotificacoesModule } from './modules/notificacoes/notificacoes.module';
 import { SessoesModule } from './modules/sessoes/sessoes.module';
+import { NoticiasModule } from './modules/noticias/noticias.module';
 import * as cookieParser from 'cookie-parser';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
@@ -28,7 +29,7 @@ import { join } from 'path';
       isGlobal: true,
     }),
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'uploads'),
+      rootPath: join(process.cwd(), 'uploads'),
       serveRoot: '/uploads',
     }),
     ScheduleModule.forRoot(),
@@ -62,6 +63,7 @@ import { join } from 'path';
     EmailModule,
     NotificacoesModule,
     SessoesModule,
+    NoticiasModule,
     JwtModule
   ],
 })

@@ -16,7 +16,10 @@ export class UploadService {
   /**
    * Valida e salva arquivo de banner
    */
-  async uploadBanner(file: Express.Multer.File): Promise<{ url: string }> {
+  async uploadBanner(
+    file: Express.Multer.File,
+    context?: string,
+  ): Promise<{ url: string }> {
     if (!file) {
       throw new BadRequestException('Nenhum arquivo foi enviado');
     }
@@ -25,11 +28,17 @@ export class UploadService {
     await validarArquivoCompleto(file, 'BANNER');
 
     try {
+      let folder = 'banners'; // Default
+      if (context === 'news_banner') {
+        folder = 'noticias/banner';
+      } else if (context === 'news_content') {
+        folder = 'noticias/corpo';
+      } else if (context === 'project_banner') {
+        folder = 'projetos/banner';
+      }
+
       // Salvar arquivo localmente
-      const caminhoRelativo = await salvarArquivoLocal(
-        file,
-        'banners',
-      );
+      const caminhoRelativo = await salvarArquivoLocal(file, folder);
 
       return {
         url: caminhoRelativo,
