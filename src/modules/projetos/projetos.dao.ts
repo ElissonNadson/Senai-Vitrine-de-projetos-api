@@ -85,9 +85,9 @@ export class ProjetosDao {
 
     for (const autor of autores) {
       await db.query(
-        `INSERT INTO projetos_alunos (projeto_uuid, aluno_uuid, papel)
+        `INSERT INTO projetos_alunos (projeto_uuid, usuario_uuid, papel)
          VALUES ($1, $2, $3)`,
-        [projetoUuid, autor.aluno_uuid, autor.papel],
+        [projetoUuid, autor.usuario_uuid, autor.papel],
       );
     }
   }
@@ -104,7 +104,7 @@ export class ProjetosDao {
 
     for (const professorUuid of orientadoresUuids) {
       await db.query(
-        `INSERT INTO projetos_professores (projeto_uuid, professor_uuid)
+        `INSERT INTO projetos_professores (projeto_uuid, usuario_uuid)
          VALUES ($1, $2)`,
         [projetoUuid, professorUuid],
       );
@@ -166,10 +166,10 @@ export class ProjetosDao {
    */
   async buscarAutores(projetoUuid: string): Promise<any[]> {
     const result = await this.pool.query(
-      `SELECT pa.papel, a.uuid as aluno_uuid, u.nome, u.email, u.avatar_url,
+      `SELECT pa.papel, a.uuid as usuario_uuid, u.nome, u.email, u.avatar_url,
               a.matricula, c.sigla as curso_sigla
        FROM projetos_alunos pa
-       INNER JOIN alunos a ON pa.aluno_uuid = a.uuid
+       INNER JOIN alunos a ON pa.usuario_uuid = a.uuid
        INNER JOIN usuarios u ON a.usuario_uuid = u.uuid
        LEFT JOIN cursos c ON a.curso_uuid = c.uuid
        WHERE pa.projeto_uuid = $1
@@ -190,10 +190,10 @@ export class ProjetosDao {
    */
   async buscarOrientadores(projetoUuid: string): Promise<any[]> {
     const result = await this.pool.query(
-      `SELECT p.uuid as professor_uuid, u.nome, u.email, u.avatar_url,
+      `SELECT p.uuid as usuario_uuid, u.nome, u.email, u.avatar_url,
               d.nome as departamento_nome
        FROM projetos_professores pp
-       INNER JOIN professores p ON pp.professor_uuid = p.uuid
+       INNER JOIN professores p ON pp.usuario_uuid = p.uuid
        INNER JOIN usuarios u ON p.usuario_uuid = u.uuid
        LEFT JOIN departamentos d ON p.departamento_uuid = d.uuid
        WHERE pp.projeto_uuid = $1
@@ -265,7 +265,7 @@ export class ProjetosDao {
     alunoUuid: string,
   ): Promise<boolean> {
     const result = await this.pool.query(
-      'SELECT 1 FROM projetos_alunos WHERE projeto_uuid = $1 AND aluno_uuid = $2',
+      'SELECT 1 FROM projetos_alunos WHERE projeto_uuid = $1 AND usuario_uuid = $2',
       [projetoUuid, alunoUuid],
     );
 
@@ -280,7 +280,7 @@ export class ProjetosDao {
     professorUuid: string,
   ): Promise<boolean> {
     const result = await this.pool.query(
-      'SELECT 1 FROM projetos_professores WHERE projeto_uuid = $1 AND professor_uuid = $2',
+      'SELECT 1 FROM projetos_professores WHERE projeto_uuid = $1 AND usuario_uuid = $2',
       [projetoUuid, professorUuid],
     );
 
@@ -318,7 +318,7 @@ export class ProjetosDao {
             'papel', pa.papel
           ) ORDER BY CASE pa.papel WHEN 'LIDER' THEN 1 ELSE 2 END, u.nome), '[]'::json)
           FROM projetos_alunos pa
-          INNER JOIN alunos a ON pa.aluno_uuid = a.uuid
+          INNER JOIN alunos a ON pa.usuario_uuid = a.usuario_uuid
           INNER JOIN usuarios u ON a.usuario_uuid = u.uuid
           WHERE pa.projeto_uuid = p.uuid
         ) as autores,
@@ -328,7 +328,7 @@ export class ProjetosDao {
             'nome', u.nome
           ) ORDER BY u.nome), '[]'::json)
           FROM projetos_professores pp
-          INNER JOIN professores prof ON pp.professor_uuid = prof.uuid
+          INNER JOIN professores prof ON pp.usuario_uuid = prof.usuario_uuid
           INNER JOIN usuarios u ON prof.usuario_uuid = u.uuid
           WHERE pp.projeto_uuid = p.uuid
         ) as orientadores,
@@ -547,7 +547,7 @@ export class ProjetosDao {
     let params: any[];
 
     if (tipoUsuario.toUpperCase() === 'PROFESSOR') {
-      // Para professor, primeiro buscar o professor_uuid
+      // Para professor, primeiro buscar o usuario_uuid
       const professorResult = await this.pool.query(
         'SELECT uuid FROM professores WHERE usuario_uuid = $1',
         [usuarioUuid]
@@ -559,7 +559,7 @@ export class ProjetosDao {
 
       const professorUuid = professorResult.rows[0].uuid;
       whereClause = `WHERE p.uuid IN (
-        SELECT pp.projeto_uuid FROM projetos_professores pp WHERE pp.professor_uuid = $1
+        SELECT pp.projeto_uuid FROM projetos_professores pp WHERE pp.usuario_uuid = $1
       ) AND p.status != 'ARQUIVADO'`;
       params = [professorUuid];
     } else {
@@ -581,7 +581,7 @@ export class ProjetosDao {
             'papel', pa.papel
           ) ORDER BY CASE pa.papel WHEN 'LIDER' THEN 1 ELSE 2 END, u.nome), '[]'::json)
           FROM projetos_alunos pa
-          INNER JOIN alunos a ON pa.aluno_uuid = a.uuid
+          INNER JOIN alunos a ON pa.usuario_uuid = a.uuid
           INNER JOIN usuarios u ON a.usuario_uuid = u.uuid
           WHERE pa.projeto_uuid = p.uuid
         ) as autores,
@@ -591,7 +591,7 @@ export class ProjetosDao {
             'nome', u.nome
           ) ORDER BY u.nome), '[]'::json)
           FROM projetos_professores pp
-          INNER JOIN professores prof ON pp.professor_uuid = prof.uuid
+          INNER JOIN professores prof ON pp.usuario_uuid = prof.uuid
           INNER JOIN usuarios u ON prof.usuario_uuid = u.uuid
           WHERE pp.projeto_uuid = p.uuid
         ) as orientadores,
@@ -922,11 +922,11 @@ export class ProjetosDao {
     }
 
     const result = await this.pool.query(
-      `SELECT uuid FROM alunos WHERE uuid = ANY($1::uuid[])`,
+      `SELECT usuario_uuid FROM alunos WHERE usuario_uuid = ANY($1::uuid[])`,
       [alunosUuids],
     );
 
-    const validos = result.rows.map(row => row.uuid);
+    const validos = result.rows.map(row => row.usuario_uuid);
     const invalidos = alunosUuids.filter(uuid => !validos.includes(uuid));
 
     return { validos, invalidos };
@@ -1007,8 +1007,8 @@ export class ProjetosDao {
    * Resolve usuários por email, retornando apenas alunos e professores
    */
   async resolverUsuariosPorEmail(emails: string[]): Promise<{
-    alunos: { email: string; usuario_uuid: string; aluno_uuid: string; nome: string }[];
-    professores: { email: string; usuario_uuid: string; professor_uuid: string; nome: string }[];
+    alunos: { email: string; usuario_uuid: string; nome: string }[];
+    professores: { email: string; string; usuario_uuid: string; nome: string }[];
   }> {
     if (!emails || emails.length === 0) {
       return { alunos: [], professores: [] };
@@ -1022,8 +1022,11 @@ export class ProjetosDao {
          u.uuid AS usuario_uuid,
          u.nome,
          u.tipo,
-         a.uuid AS aluno_uuid,
-         p.uuid AS professor_uuid
+         CASE
+          WHEN a.usuario_uuid IS NOT NULL THEN a.usuario_uuid
+          WHEN p.usuario_uuid IS NOT NULL THEN p.usuario_uuid
+          ELSE NULL
+         END AS usuario_uuid
        FROM usuarios u
        LEFT JOIN alunos a ON a.usuario_uuid = u.uuid AND u.tipo = 'ALUNO'
        LEFT JOIN professores p ON p.usuario_uuid = u.uuid AND u.tipo = 'PROFESSOR'
@@ -1032,12 +1035,12 @@ export class ProjetosDao {
     );
 
     const alunos = result.rows
-      .filter(r => r.tipo === 'ALUNO' && r.aluno_uuid)
-      .map(r => ({ email: r.email, usuario_uuid: r.usuario_uuid, aluno_uuid: r.aluno_uuid, nome: r.nome }));
+      .filter(r => r.tipo === 'ALUNO' && r.usuario_uuid)
+      .map(r => ({ email: r.email, usuario_uuid: r.usuario_uuid, nome: r.nome }));
 
     const professores = result.rows
-      .filter(r => r.tipo === 'PROFESSOR' && r.professor_uuid)
-      .map(r => ({ email: r.email, usuario_uuid: r.usuario_uuid, professor_uuid: r.professor_uuid, nome: r.nome }));
+      .filter(r => r.tipo === 'PROFESSOR' && r.usuario_uuid)
+      .map(r => ({ email: r.email, usuario_uuid: r.usuario_uuid, nome: r.nome }));
 
     return { alunos, professores };
   }
@@ -1055,8 +1058,11 @@ export class ProjetosDao {
          u.nome,
          u.tipo,
          u.avatar_url,
-         a.uuid AS aluno_uuid,
-         p.uuid AS professor_uuid
+         CASE
+          WHEN a.usuario_uuid IS NOT NULL THEN a.usuario_uuid
+          WHEN p.usuario_uuid IS NOT NULL THEN p.usuario_uuid
+          ELSE NULL
+         END AS usuario_uuid
        FROM usuarios u
        LEFT JOIN alunos a ON a.usuario_uuid = u.uuid AND u.tipo = 'ALUNO'
        LEFT JOIN professores p ON p.usuario_uuid = u.uuid AND u.tipo = 'PROFESSOR'

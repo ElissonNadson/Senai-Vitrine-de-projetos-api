@@ -63,7 +63,7 @@ export class Passo1ProjetoDto {
  */
 export class AutorProjetoDto {
   @IsUUID('4', { message: 'UUID do aluno inválido' })
-  aluno_uuid: string;
+  usuario_uuid: string;
 
   @IsIn(['LIDER', 'AUTOR'], { message: 'Papel deve ser LIDER ou AUTOR' })
   papel: 'LIDER' | 'AUTOR';

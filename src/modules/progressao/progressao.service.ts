@@ -221,19 +221,12 @@ export class ProgressaoService {
     let temPermissao = usuario.tipo === 'ADMIN';
 
     if (!temPermissao && usuario.tipo === 'ALUNO') {
-      const alunoResult = await this.pool.query(
-        'SELECT uuid FROM alunos WHERE usuario_uuid = $1',
-        [usuario.uuid],
+      const liderAtualResult = await this.pool.query(
+        'SELECT 1 FROM projetos_alunos WHERE projeto_uuid = $1 AND usuario_uuid = $2 AND papel = $3',
+        [projetoUuid, usuario.uuid, 'LIDER'],
       );
 
-      if (alunoResult.rows.length > 0) {
-        const liderAtualResult = await this.pool.query(
-          'SELECT 1 FROM projetos_alunos WHERE projeto_uuid = $1 AND aluno_uuid = $2 AND papel = $3',
-          [projetoUuid, alunoResult.rows[0].uuid, 'LIDER'],
-        );
-
-        temPermissao = liderAtualResult.rows.length > 0;
-      }
+      temPermissao = liderAtualResult.rows.length > 0;
     }
 
     if (!temPermissao) {
@@ -255,7 +248,7 @@ export class ProgressaoService {
 
       // Define novo líder
       await client.query(
-        'UPDATE projetos_alunos SET papel = $1 WHERE projeto_uuid = $2 AND aluno_uuid = $3',
+        'UPDATE projetos_alunos SET papel = $1 WHERE projeto_uuid = $2 AND usuario_uuid = $3',
         ['LIDER', projetoUuid, novoLiderAlunoUuid],
       );
 

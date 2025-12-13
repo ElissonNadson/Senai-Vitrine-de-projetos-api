@@ -44,27 +44,15 @@ export class EtapasService {
     let temPermissao = false;
 
     if (usuario.tipo === 'ALUNO') {
-      const alunoResult = await this.pool.query(
-        'SELECT uuid FROM alunos WHERE usuario_uuid = $1',
-        [usuario.uuid],
-      );
-      if (alunoResult.rows.length > 0) {
         temPermissao = await this.projetosDao.verificarAutorProjeto(
           projetoUuid,
-          alunoResult.rows[0].uuid,
+          usuario.uuid,
         );
-      }
     } else if (usuario.tipo === 'PROFESSOR') {
-      const professorResult = await this.pool.query(
-        'SELECT uuid FROM professores WHERE usuario_uuid = $1',
-        [usuario.uuid],
+      temPermissao = await this.projetosDao.verificarOrientadorProjeto(
+        projetoUuid,
+        usuario.uuid,
       );
-      if (professorResult.rows.length > 0) {
-        temPermissao = await this.projetosDao.verificarOrientadorProjeto(
-          projetoUuid,
-          professorResult.rows[0].uuid,
-        );
-      }
     }
 
     if (!temPermissao && usuario.tipo !== 'ADMIN') {
@@ -148,27 +136,15 @@ export class EtapasService {
     let temPermissao = false;
 
     if (usuario.tipo === 'ALUNO') {
-      const alunoResult = await this.pool.query(
-        'SELECT uuid FROM alunos WHERE usuario_uuid = $1',
-        [usuario.uuid],
+      temPermissao = await this.projetosDao.verificarAutorProjeto(
+        etapa.projeto_uuid,
+        usuario.uuid,
       );
-      if (alunoResult.rows.length > 0) {
-        temPermissao = await this.projetosDao.verificarAutorProjeto(
-          etapa.projeto_uuid,
-          alunoResult.rows[0].uuid,
-        );
-      }
     } else if (usuario.tipo === 'PROFESSOR') {
-      const professorResult = await this.pool.query(
-        'SELECT uuid FROM professores WHERE usuario_uuid = $1',
-        [usuario.uuid],
+      temPermissao = await this.projetosDao.verificarOrientadorProjeto(
+        etapa.projeto_uuid,
+        usuario.uuid,
       );
-      if (professorResult.rows.length > 0) {
-        temPermissao = await this.projetosDao.verificarOrientadorProjeto(
-          etapa.projeto_uuid,
-          professorResult.rows[0].uuid,
-        );
-      }
     }
 
     if (!temPermissao && usuario.tipo !== 'ADMIN') {
@@ -217,16 +193,10 @@ export class EtapasService {
     let temPermissao = false;
 
     if (usuario.tipo === 'ALUNO') {
-      const alunoResult = await this.pool.query(
-        'SELECT uuid FROM alunos WHERE usuario_uuid = $1',
-        [usuario.uuid],
+      temPermissao = await this.projetosDao.verificarAutorProjeto(
+        etapa.projeto_uuid,
+        usuario.uuid,
       );
-      if (alunoResult.rows.length > 0) {
-        temPermissao = await this.projetosDao.verificarAutorProjeto(
-          etapa.projeto_uuid,
-          alunoResult.rows[0].uuid,
-        );
-      }
     }
 
     if (!temPermissao && usuario.tipo !== 'ADMIN') {
@@ -356,16 +326,10 @@ export class EtapasService {
     let temPermissao = false;
 
     if (usuario.tipo === 'ALUNO') {
-      const alunoResult = await this.pool.query(
-        'SELECT uuid FROM alunos WHERE usuario_uuid = $1',
-        [usuario.uuid],
+      temPermissao = await this.projetosDao.verificarAutorProjeto(
+        etapa.projeto_uuid,
+        usuario.uuid,
       );
-      if (alunoResult.rows.length > 0) {
-        temPermissao = await this.projetosDao.verificarAutorProjeto(
-          etapa.projeto_uuid,
-          alunoResult.rows[0].uuid,
-        );
-      }
     }
 
     if (!temPermissao && usuario.tipo !== 'ADMIN') {
@@ -412,16 +376,10 @@ export class EtapasService {
     let temPermissao = usuario.tipo === 'ADMIN';
 
     if (!temPermissao && usuario.tipo === 'ALUNO') {
-      const alunoResult = await this.pool.query(
-        'SELECT uuid FROM alunos WHERE usuario_uuid = $1',
-        [usuario.uuid],
+      temPermissao = await this.projetosDao.verificarAutorProjeto(
+        etapa.projeto_uuid,
+        usuario.uuid,
       );
-      if (alunoResult.rows.length > 0) {
-        temPermissao = await this.projetosDao.verificarAutorProjeto(
-          etapa.projeto_uuid,
-          alunoResult.rows[0].uuid,
-        );
-      }
     }
 
     if (!temPermissao) {
@@ -483,16 +441,10 @@ export class EtapasService {
     let temPermissao = usuario.tipo === 'ADMIN';
 
     if (!temPermissao && usuario.tipo === 'ALUNO') {
-      const alunoResult = await this.pool.query(
-        'SELECT uuid FROM alunos WHERE usuario_uuid = $1',
-        [usuario.uuid],
+      temPermissao = await this.projetosDao.verificarAutorProjeto(
+        projeto_uuid,
+        usuario.uuid,
       );
-      if (alunoResult.rows.length > 0) {
-        temPermissao = await this.projetosDao.verificarAutorProjeto(
-          projeto_uuid,
-          alunoResult.rows[0].uuid,
-        );
-      }
     }
 
     if (!temPermissao) {

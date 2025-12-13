@@ -54,17 +54,6 @@ export class ProjetosService {
       await client.query('BEGIN');
 
       // Busca UUID do aluno
-      const alunoResult = await client.query(
-        'SELECT uuid FROM alunos WHERE usuario_uuid = $1',
-        [usuario.uuid],
-      );
-
-      if (alunoResult.rows.length === 0) {
-        throw new NotFoundException('Perfil de aluno não encontrado');
-      }
-
-      const alunoUuid = alunoResult.rows[0].uuid;
-
       // Cria rascunho (passa usuario.uuid para as FKs criado_por_uuid e lider_uuid)
       const projetoUuid = await this.projetosDao.criarRascunho(
         dados,
@@ -75,7 +64,7 @@ export class ProjetosService {
       // Adiciona criador como líder automaticamente
       await this.projetosDao.adicionarAutores(
         projetoUuid,
-        [{ aluno_uuid: alunoUuid, papel: 'LIDER' }],
+        [{ usuario_uuid: usuario.uuid, papel: 'LIDER' }],
         client,
       );
 
@@ -90,7 +79,7 @@ export class ProjetosService {
           titulo: dados.titulo,
           descricao: dados.descricao,
           categoria: dados.categoria,
-          lider_uuid: alunoUuid,
+          lider_uuid: usuario.uuid,
         },
         usuario.ip,
         usuario.userAgent,
@@ -127,7 +116,7 @@ export class ProjetosService {
 
     // Verifica permissão
     const alunoResult = await this.pool.query(
-      'SELECT uuid FROM alunos WHERE usuario_uuid = $1',
+      'SELECT 1 FROM alunos WHERE usuario_uuid = $1',
       [usuario.uuid],
     );
 
@@ -135,7 +124,7 @@ export class ProjetosService {
       throw new ForbiddenException('Apenas alunos podem editar este projeto');
     }
 
-    const alunoUuid = alunoResult.rows[0].uuid;
+    const alunoUuid = usuario.uuid;
     const isAutor = await this.projetosDao.verificarAutorProjeto(
       projetoUuid,
       alunoUuid,
@@ -211,7 +200,7 @@ export class ProjetosService {
 
     // Verifica permissão
     const alunoResult = await this.pool.query(
-      'SELECT uuid FROM alunos WHERE usuario_uuid = $1',
+      'SELECT 1 FROM alunos WHERE usuario_uuid = $1',
       [usuario.uuid],
     );
 
@@ -219,7 +208,7 @@ export class ProjetosService {
       throw new ForbiddenException('Apenas alunos podem editar este projeto');
     }
 
-    const alunoUuid = alunoResult.rows[0].uuid;
+    const alunoUuid = usuario.uuid;
     const isAutor = await this.projetosDao.verificarAutorProjeto(
       projetoUuid,
       alunoUuid,
@@ -238,7 +227,7 @@ export class ProjetosService {
     }
 
     // Valida se todos os alunos existem
-    const alunosUuids = dados.autores.map(a => a.aluno_uuid);
+    const alunosUuids = dados.autores.map(a => a.usuario_uuid);
     const validacaoAlunos = await this.projetosDao.validarAlunos(alunosUuids);
 
     if (validacaoAlunos.invalidos.length > 0) {
@@ -292,8 +281,8 @@ export class ProjetosService {
         'ATUALIZACAO_PASSO3',
         'Equipe (autores e orientadores) atualizada',
         {
-          autores: autoresAnteriores.map(a => ({ uuid: a.aluno_uuid, papel: a.papel })),
-          orientadores: orientadoresAnteriores.map(o => o.professor_uuid),
+          autores: autoresAnteriores.map(a => ({ uuid: a.usuario_uuid, papel: a.papel })),
+          orientadores: orientadoresAnteriores.map(o => o.usuario_uuid),
         },
         {
           autores: dados.autores,
@@ -333,7 +322,7 @@ export class ProjetosService {
 
     // Verifica permissão
     const alunoResult = await this.pool.query(
-      'SELECT uuid FROM alunos WHERE usuario_uuid = $1',
+      'SELECT 1 FROM alunos WHERE usuario_uuid = $1',
       [usuario.uuid],
     );
 
@@ -341,7 +330,7 @@ export class ProjetosService {
       throw new ForbiddenException('Apenas alunos podem editar este projeto');
     }
 
-    const alunoUuid = alunoResult.rows[0].uuid;
+    const alunoUuid = usuario.uuid;
     const isAutor = await this.projetosDao.verificarAutorProjeto(
       projetoUuid,
       alunoUuid,
@@ -437,7 +426,7 @@ export class ProjetosService {
 
     // Verifica permissão
     const alunoResult = await this.pool.query(
-      'SELECT uuid FROM alunos WHERE usuario_uuid = $1',
+      'SELECT 1 FROM alunos WHERE usuario_uuid = $1',
       [usuario.uuid],
     );
 
@@ -445,7 +434,7 @@ export class ProjetosService {
       throw new ForbiddenException('Apenas alunos podem editar este projeto');
     }
 
-    const alunoUuid = alunoResult.rows[0].uuid;
+    const alunoUuid = usuario.uuid;
     const isAutor = await this.projetosDao.verificarAutorProjeto(
       projetoUuid,
       alunoUuid,
@@ -552,29 +541,17 @@ export class ProjetosService {
       let temPermissao = usuario.tipo === 'ADMIN';
 
       if (!temPermissao && usuario.tipo === 'ALUNO') {
-        const alunoResult = await this.pool.query(
-          'SELECT uuid FROM alunos WHERE usuario_uuid = $1',
-          [usuario.uuid],
+        temPermissao = await this.projetosDao.verificarAutorProjeto(
+          uuid,
+          usuario.uuid,
         );
-        if (alunoResult.rows.length > 0) {
-          temPermissao = await this.projetosDao.verificarAutorProjeto(
-            uuid,
-            alunoResult.rows[0].uuid,
-          );
-        }
       }
 
       if (!temPermissao && usuario.tipo === 'PROFESSOR') {
-        const professorResult = await this.pool.query(
-          'SELECT uuid FROM professores WHERE usuario_uuid = $1',
-          [usuario.uuid],
+        temPermissao = await this.projetosDao.verificarOrientadorProjeto(
+          uuid,
+          usuario.uuid,
         );
-        if (professorResult.rows.length > 0) {
-          temPermissao = await this.projetosDao.verificarOrientadorProjeto(
-            uuid,
-            professorResult.rows[0].uuid,
-          );
-        }
       }
 
       if (!temPermissao) {
@@ -646,27 +623,15 @@ export class ProjetosService {
 
     if (!temPermissao) {
       if (usuario.tipo === 'ALUNO') {
-        const alunoResult = await this.pool.query(
-          'SELECT uuid FROM alunos WHERE usuario_uuid = $1',
-          [usuario.uuid],
+        temPermissao = await this.projetosDao.verificarAutorProjeto(
+          projetoUuid,
+          usuario.uuid,
         );
-        if (alunoResult.rows.length > 0) {
-          temPermissao = await this.projetosDao.verificarAutorProjeto(
-            projetoUuid,
-            alunoResult.rows[0].uuid,
-          );
-        }
       } else if (usuario.tipo === 'PROFESSOR') {
-        const professorResult = await this.pool.query(
-          'SELECT uuid FROM professores WHERE usuario_uuid = $1',
-          [usuario.uuid],
+        temPermissao = await this.projetosDao.verificarOrientadorProjeto(
+          projetoUuid,
+          usuario.uuid,
         );
-        if (professorResult.rows.length > 0) {
-          temPermissao = await this.projetosDao.verificarOrientadorProjeto(
-            projetoUuid,
-            professorResult.rows[0].uuid,
-          );
-        }
       }
     }
 
@@ -725,13 +690,13 @@ export class ProjetosService {
 
     if (!temPermissao && usuario.tipo === 'ALUNO') {
       const alunoResult = await this.pool.query(
-        'SELECT uuid FROM alunos WHERE usuario_uuid = $1',
+        'SELECT 1 FROM alunos WHERE usuario_uuid = $1',
         [usuario.uuid],
       );
 
       if (alunoResult.rows.length > 0) {
         const liderResult = await this.pool.query(
-          'SELECT 1 FROM projetos_alunos WHERE projeto_uuid = $1 AND aluno_uuid = $2 AND papel = $3',
+          'SELECT 1 FROM projetos_alunos WHERE projeto_uuid = $1 AND usuario_uuid = $2 AND papel = $3',
           [projetoUuid, alunoResult.rows[0].uuid, 'LIDER'],
         );
         temPermissao = liderResult.rows.length > 0;
@@ -822,8 +787,8 @@ export class ProjetosService {
    * Resolve emails para UUIDs de alunos/professores
    */
   async resolverUsuariosPorEmail(emails: string[]): Promise<{
-    alunos: { email: string; usuario_uuid: string; aluno_uuid: string; nome: string }[];
-    professores: { email: string; usuario_uuid: string; professor_uuid: string; nome: string }[];
+    alunos: { email: string; usuario_uuid: string; nome: string }[];
+    professores: { email: string; usuario_uuid: string; nome: string }[];
     invalidos: string[];
   }> {
     if (!emails || emails.length === 0) {
