@@ -1,31 +1,39 @@
-import { Inject, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, InternalServerErrorException, NotFoundException, Logger } from '@nestjs/common';
 import * as pg from 'pg';
 import { CreateNoticiaDto, UpdateNoticiaDto } from './dto/noticias.dto';
 
 @Injectable()
 export class NoticiasService {
+    private readonly logger = new Logger(NoticiasService.name);
+
     constructor(@Inject('PG_POOL') private readonly pool: pg.Pool) { }
 
     async create(createNoticiaDto: CreateNoticiaDto, userId: string) {
         const {
             titulo, resumo, conteudo, bannerUrl,
-            dataEvento, localEvento, categoria, publicado, destaque
+            dataEvento, localEvento, categoria, publicado, destaque, dataExpiracao
         } = createNoticiaDto;
 
-        const result = await this.pool.query(
-            `INSERT INTO noticias (
-        titulo, resumo, conteudo, banner_url,
-        data_evento, local_evento, categoria, published, destaque, autor_uuid, data_publicacao
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING *`,
-            [
-                titulo, resumo, conteudo, bannerUrl,
-                dataEvento, localEvento, categoria || 'GERAL',
-                publicado ?? true, destaque ?? false, userId,
-                publicado ? new Date() : null
-            ]
-        );
-        return result.rows[0];
+        try {
+            const result = await this.pool.query(
+                `INSERT INTO noticias (
+            titulo, resumo, conteudo, banner_url,
+            data_evento, local_evento, categoria, publicado, destaque, autor_uuid, data_publicacao, data_expiracao
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        RETURNING *`,
+                [
+                    titulo, resumo, conteudo, bannerUrl,
+                    dataEvento, localEvento, categoria || 'GERAL',
+                    publicado ?? true, destaque ?? false, userId,
+                    publicado ? new Date() : null,
+                    dataExpiracao || null
+                ]
+            );
+            return result.rows[0];
+        } catch (error) {
+            this.logger.error(`Erro ao criar notícia: ${error.message}`, error.stack);
+            throw new InternalServerErrorException('Erro ao criar notícia');
+        }
     }
 
     async findAll(page: number = 1, limit: number = 10, publicOnly: boolean = true) {
@@ -64,7 +72,7 @@ export class NoticiasService {
 
     async findOne(id: string) {
         const result = await this.pool.query(
-            `SELECT n.*, u.nome as autor_nome, u.autor_uuid as autor_uuid, u.avatar_url as autor_avatar
+            `SELECT n.*, u.nome as autor_nome, u.avatar_url as autor_avatar
        FROM noticias n
        LEFT JOIN usuarios u ON n.autor_uuid = u.uuid
        WHERE n.uuid = $1`,
@@ -119,13 +127,18 @@ export class NoticiasService {
       RETURNING *
     `;
 
-        const result = await this.pool.query(query, queryValues);
+        try {
+            const result = await this.pool.query(query, queryValues);
 
-        if (result.rows.length === 0) {
-            throw new NotFoundException('Notícia não encontrada');
+            if (result.rows.length === 0) {
+                throw new NotFoundException('Notícia não encontrada');
+            }
+
+            return result.rows[0];
+        } catch (error) {
+            this.logger.error(`Erro ao atualizar notícia ${id}: ${error.message}`, error.stack);
+            throw error instanceof NotFoundException ? error : new InternalServerErrorException('Erro ao atualizar notícia');
         }
-
-        return result.rows[0];
     }
 
     async remove(id: string) {
@@ -165,5 +178,17 @@ export class NoticiasService {
         );
         if (result.rows.length === 0) throw new NotFoundException('Notícia não encontrada');
         return result.rows[0];
+    }
+
+    async archiveOldNews() {
+        const result = await this.pool.query(
+            `UPDATE noticias 
+             SET publicado = FALSE, atualizado_em = NOW() 
+             WHERE publicado = TRUE 
+             AND data_expiracao IS NOT NULL 
+             AND data_expiracao < NOW()
+             RETURNING uuid, titulo`
+        );
+        return result.rows;
     }
 }

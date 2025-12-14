@@ -19,7 +19,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     @Inject(forwardRef(() => SessoesService))
     private readonly sessoesService: SessoesService,
-  ) {}
+  ) { }
 
   /**
    * Valida callback do Google OAuth e cria/atualiza usuário
@@ -265,7 +265,7 @@ export class AuthService {
         u.uuid, u.nome, u.email, u.tipo, u.avatar_url, u.primeiro_acesso,
         CASE 
           WHEN u.tipo = 'ALUNO' THEN json_build_object(
-            'uuid', a.uuid,
+            'uuid', a.usuario_uuid,
             'matricula', a.matricula,
             'curso', c.nome,
             'turma', t.codigo,
@@ -276,7 +276,7 @@ export class AuthService {
             'portfolio_url', a.portfolio_url
           )
           WHEN u.tipo = 'PROFESSOR' THEN json_build_object(
-            'uuid', p.uuid,
+            'uuid', p.usuario_uuid,
             'matricula', p.matricula,
             'departamento', d.nome,
             'especialidade', p.especialidade,

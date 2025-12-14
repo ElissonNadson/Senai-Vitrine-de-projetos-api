@@ -13,7 +13,7 @@ export class NotificacoesService {
   constructor(
     @Inject('PG_POOL') private readonly pool: Pool,
     private readonly notificacoesDao: NotificacoesDao,
-  ) {}
+  ) { }
 
   /**
    * Cria notificação para usuário(s)
@@ -73,7 +73,7 @@ export class NotificacoesService {
     const autoresResult = await this.pool.query(
       `SELECT a.usuario_uuid 
        FROM projetos_alunos pa
-       INNER JOIN alunos a ON pa.usuario_uuid = a.uuid
+       INNER JOIN alunos a ON pa.usuario_uuid = a.usuario_uuid
        WHERE pa.projeto_uuid = $1`,
       [projetoUuid],
     );
@@ -101,7 +101,7 @@ export class NotificacoesService {
     const orientadoresResult = await this.pool.query(
       `SELECT p.usuario_uuid 
        FROM projetos_professores pp
-       INNER JOIN professores p ON pp.usuario_uuid = p.uuid
+       INNER JOIN professores p ON pp.usuario_uuid = p.usuario_uuid
        WHERE pp.projeto_uuid = $1`,
       [projetoUuid],
     );

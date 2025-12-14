@@ -685,6 +685,10 @@ export class ProjetosService {
       throw new NotFoundException('Projeto não encontrado');
     }
 
+    if (projeto.status === 'PUBLICADO') {
+      throw new ForbiddenException('Não é possível excluir um projeto publicado. Apenas rascunhos podem ser excluídos.');
+    }
+
     // Apenas admin ou líder pode deletar
     let temPermissao = usuario.tipo === 'ADMIN';
 

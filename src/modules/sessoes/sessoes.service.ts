@@ -13,7 +13,7 @@ export class SessoesService {
   constructor(
     private readonly sessoesDAO: SessoesDAO,
     private readonly notificacoesService: NotificacoesService,
-  ) {}
+  ) { }
 
   /**
    * Gera hash SHA-256 do token para armazenamento seguro
@@ -37,7 +37,7 @@ export class SessoesService {
     const os = result.os;
     const device = result.device;
 
-    const navegador = browser.name 
+    const navegador = browser.name
       ? `${browser.name}${browser.version ? ' ' + browser.major : ''}`
       : 'Navegador desconhecido';
 
@@ -59,7 +59,7 @@ export class SessoesService {
    */
   mascararIP(ip: string): string {
     if (!ip || ip === 'unknown') return 'IP desconhecido';
-    
+
     // IPv4: mostra apenas os primeiros dois octetos
     if (ip.includes('.')) {
       const parts = ip.split('.');
@@ -67,7 +67,7 @@ export class SessoesService {
         return `${parts[0]}.${parts[1]}.*.*`;
       }
     }
-    
+
     // IPv6: mostra apenas os primeiros grupos
     if (ip.includes(':')) {
       const parts = ip.split(':');
@@ -75,7 +75,7 @@ export class SessoesService {
         return `${parts[0]}:${parts[1]}:*:*`;
       }
     }
-    
+
     return 'IP desconhecido';
   }
 
@@ -92,16 +92,34 @@ export class SessoesService {
     const tokenHash = this.gerarTokenHash(token);
     const { navegador, sistemaOperacional, dispositivo } = this.parseUserAgent(userAgent);
 
-    // Verifica se é um novo dispositivo
+    // Calcula expiração (24 horas, igual ao JWT)
+    const expiraEm = new Date();
+    expiraEm.setHours(expiraEm.getHours() + 24);
+
+    // Verifica se já existe uma sessão ativa para este mesmo IP e User-Agent
+    const sessaoExistente = await this.sessoesDAO.buscarSessaoExistente(
+      usuarioUuid,
+      ip,
+      userAgent
+    );
+
+    if (sessaoExistente) {
+      // Reutiliza a sessão existente, atualizando o token e validade
+      await this.sessoesDAO.atualizarTokenSessao(
+        sessaoExistente.uuid,
+        tokenHash,
+        expiraEm
+      );
+      this.logger.log(`Sessão reutilizada para usuário ${usuarioUuid} - ${navegador} no ${dispositivo}`);
+      return;
+    }
+
+    // Se não existir, verifica se é um novo dispositivo para notificação
     const dispositivoConhecido = await this.sessoesDAO.verificarDispositivoConhecido(
       usuarioUuid,
       navegador,
       sistemaOperacional,
     );
-
-    // Calcula expiração (24 horas, igual ao JWT)
-    const expiraEm = new Date();
-    expiraEm.setHours(expiraEm.getHours() + 24);
 
     // Cria a sessão
     await this.sessoesDAO.criarSessao({
@@ -214,7 +232,7 @@ export class SessoesService {
   ): Promise<void> {
     // Verifica se a sessão pertence ao usuário
     const sessao = await this.sessoesDAO.buscarPorUuid(sessaoUuid);
-    
+
     if (!sessao) {
       throw new NotFoundException('Sessão não encontrada');
     }
@@ -226,7 +244,7 @@ export class SessoesService {
     // Não permite encerrar a sessão atual por este endpoint
     const tokenHashAtual = this.gerarTokenHash(tokenAtual);
     const sessaoAtual = await this.sessoesDAO.buscarPorTokenHash(tokenHashAtual);
-    
+
     if (sessaoAtual && sessaoAtual.uuid === sessaoUuid) {
       throw new ForbiddenException('Para encerrar a sessão atual, use o logout');
     }

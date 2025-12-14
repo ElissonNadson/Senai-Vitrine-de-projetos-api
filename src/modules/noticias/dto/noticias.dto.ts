@@ -34,7 +34,13 @@ export class CreateNoticiaDto {
 
   @IsBoolean()
   @IsOptional()
+  @IsBoolean()
+  @IsOptional()
   destaque?: boolean;
+
+  @IsDateString()
+  @IsOptional()
+  dataExpiracao?: string;
 }
 
 export class UpdateNoticiaDto {
@@ -73,4 +79,8 @@ export class UpdateNoticiaDto {
   @IsBoolean()
   @IsOptional()
   destaque?: boolean;
+
+  @IsDateString()
+  @IsOptional()
+  dataExpiracao?: string;
 }
