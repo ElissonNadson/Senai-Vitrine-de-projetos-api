@@ -37,4 +37,40 @@ export class CreateNoticiaDto {
   destaque?: boolean;
 }
 
-export class UpdateNoticiaDto extends CreateNoticiaDto {}
+export class UpdateNoticiaDto {
+  @IsString()
+  @IsOptional()
+  titulo?: string;
+
+  @IsString()
+  @IsOptional()
+  resumo?: string;
+
+  @IsString()
+  @IsOptional()
+  conteudo?: string;
+
+  @IsString()
+  @IsOptional()
+  bannerUrl?: string;
+
+  @IsDateString()
+  @IsOptional()
+  dataEvento?: string;
+
+  @IsString()
+  @IsOptional()
+  localEvento?: string;
+
+  @IsString()
+  @IsOptional()
+  categoria?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  publicado?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  destaque?: boolean;
+}

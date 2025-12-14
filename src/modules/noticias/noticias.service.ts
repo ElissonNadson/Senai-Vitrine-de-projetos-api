@@ -15,13 +15,14 @@ export class NoticiasService {
         const result = await this.pool.query(
             `INSERT INTO noticias (
         titulo, resumo, conteudo, banner_url,
-        data_evento, local_evento, categoria, published, destaque, autor_uuid
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        data_evento, local_evento, categoria, published, destaque, autor_uuid, data_publicacao
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *`,
             [
                 titulo, resumo, conteudo, bannerUrl,
                 dataEvento, localEvento, categoria || 'GERAL',
-                publicado ?? true, destaque ?? false, userId
+                publicado ?? true, destaque ?? false, userId,
+                publicado ? new Date() : null
             ]
         );
         return result.rows[0];
@@ -63,7 +64,7 @@ export class NoticiasService {
 
     async findOne(id: string) {
         const result = await this.pool.query(
-            `SELECT n.*, u.nome as autor_nome, u.avatar_url as autor_avatar
+            `SELECT n.*, u.nome as autor_nome, u.autor_uuid as autor_uuid, u.avatar_url as autor_avatar
        FROM noticias n
        LEFT JOIN usuarios u ON n.autor_uuid = u.uuid
        WHERE n.uuid = $1`,
@@ -78,32 +79,47 @@ export class NoticiasService {
     }
 
     async update(id: string, updateNoticiaDto: UpdateNoticiaDto) {
-        // Construção dinâmica da query de update
-        const fields: string[] = [];
-        const values: any[] = [];
-        let idx = 1;
+        // Let's refactor the loop correctly.
+        // If updating published to true -> add logic to set data_publicacao
+
+        const updates: string[] = [];
+        const queryValues: any[] = [];
+        let paramIdx = 1;
 
         Object.entries(updateNoticiaDto).forEach(([key, value]) => {
-            if (value !== undefined) {
-                // Mapeamento de camelCase para snake_case
-                const dbField = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-                fields.push(`${dbField} = $${idx}`);
-                values.push(value);
-                idx++;
+            if (value === undefined) return;
+
+            if (key === 'publicado') {
+                updates.push(`publicado = $${paramIdx}`);
+                queryValues.push(value);
+                paramIdx++;
+                if (value === true) {
+                    updates.push(`data_publicacao = COALESCE(data_publicacao, NOW())`);
+                }
+                return;
             }
+
+            // Generic handler
+            const dbField = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+            updates.push(`${dbField} = $${paramIdx}`);
+            queryValues.push(value);
+            paramIdx++;
         });
 
-        if (fields.length === 0) return this.findOne(id);
+        if (updates.length === 0) return this.findOne(id);
 
-        values.push(id);
+        // Always update 'atualizado_em'
+        updates.push(`atualizado_em = NOW()`);
+
+        queryValues.push(id);
         const query = `
       UPDATE noticias 
-      SET ${fields.join(', ')}, atualizado_em = NOW() 
-      WHERE uuid = $${idx}
+      SET ${updates.join(', ')}
+      WHERE uuid = $${paramIdx}
       RETURNING *
     `;
 
-        const result = await this.pool.query(query, values);
+        const result = await this.pool.query(query, queryValues);
 
         if (result.rows.length === 0) {
             throw new NotFoundException('Notícia não encontrada');

@@ -21,6 +21,7 @@ const REGEX_EMAIL_DOCENTE = /^[a-zA-Z0-9._-]+@ba\.docente\.senai\.br$/;
  */
 const EMAILS_PERMITIDOS = [
   'nadsonnodachi@gmail.com',
+  'ingridbarretoap@gmail.com',
   'admin@admin.com',
   'senaifeira@senaifeira'
 ];
