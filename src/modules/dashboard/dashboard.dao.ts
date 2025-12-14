@@ -32,7 +32,7 @@ export class DashboardDao {
               (SELECT COUNT(*) FROM projetos_alunos pa2 WHERE pa2.projeto_uuid = p.uuid) as total_autores
        FROM projetos p
        INNER JOIN projetos_alunos pa ON p.uuid = pa.projeto_uuid
-       WHERE pa.aluno_uuid = $1
+       WHERE pa.usuario_uuid = $1
        ORDER BY p.criado_em DESC
        LIMIT 10`,
       [aluno.uuid],
@@ -41,16 +41,16 @@ export class DashboardDao {
     // Contadores
     const contagensResult = await this.pool.query(
       `SELECT 
-         (SELECT COUNT(*) FROM projetos_alunos WHERE aluno_uuid = $1 AND papel = 'LIDER') as projetos_lider,
-         (SELECT COUNT(*) FROM projetos_alunos WHERE aluno_uuid = $1 AND papel = 'AUTOR') as projetos_autor,
+         (SELECT COUNT(*) FROM projetos_alunos WHERE usuario_uuid = $1 AND papel = 'LIDER') as projetos_lider,
+         (SELECT COUNT(*) FROM projetos_alunos WHERE usuario_uuid = $1 AND papel = 'AUTOR') as projetos_autor,
          (SELECT COUNT(DISTINCT p.uuid) 
           FROM projetos p 
           INNER JOIN projetos_alunos pa ON p.uuid = pa.projeto_uuid 
-          WHERE pa.aluno_uuid = $1 AND p.fase_atual = 'EM_DESENVOLVIMENTO') as projetos_andamento,
+          WHERE pa.usuario_uuid = $1 AND p.fase_atual = 'EM_DESENVOLVIMENTO') as projetos_andamento,
          (SELECT COUNT(DISTINCT p.uuid) 
           FROM projetos p 
           INNER JOIN projetos_alunos pa ON p.uuid = pa.projeto_uuid 
-          WHERE pa.aluno_uuid = $1 AND p.fase_atual = 'CONCLUIDO') as projetos_concluidos`,
+          WHERE pa.usuario_uuid = $1 AND p.fase_atual = 'CONCLUIDO') as projetos_concluidos`,
       [aluno.uuid],
     );
 
@@ -93,7 +93,7 @@ export class DashboardDao {
               (SELECT COUNT(*) FROM etapas_projeto ep WHERE ep.projeto_uuid = p.uuid AND ep.status = 'PENDENTE_ORIENTADOR') as pendencias
        FROM projetos p
        INNER JOIN projetos_professores pp ON p.uuid = pp.projeto_uuid
-       WHERE pp.professor_uuid = $1
+       WHERE pp.usuario_uuid = $1
        ORDER BY p.criado_em DESC
        LIMIT 10`,
       [professor.uuid],
@@ -102,15 +102,15 @@ export class DashboardDao {
     // Contadores
     const contagensResult = await this.pool.query(
       `SELECT 
-         (SELECT COUNT(*) FROM projetos_professores WHERE professor_uuid = $1) as total_orientacoes,
+         (SELECT COUNT(*) FROM projetos_professores WHERE usuario_uuid = $1) as total_orientacoes,
          (SELECT COUNT(DISTINCT p.uuid) 
           FROM projetos p 
           INNER JOIN projetos_professores pp ON p.uuid = pp.projeto_uuid 
-          WHERE pp.professor_uuid = $1 AND p.fase_atual = 'EM_DESENVOLVIMENTO') as orientacoes_andamento,
+          WHERE pp.usuario_uuid = $1 AND p.fase_atual = 'EM_DESENVOLVIMENTO') as orientacoes_andamento,
          (SELECT COUNT(*) 
           FROM etapas_projeto ep
           INNER JOIN projetos_professores pp ON ep.projeto_uuid = pp.projeto_uuid
-          WHERE pp.professor_uuid = $1 AND ep.status = 'PENDENTE_ORIENTADOR') as pendencias_feedback`,
+          WHERE pp.usuario_uuid = $1 AND ep.status = 'PENDENTE_ORIENTADOR') as pendencias_feedback`,
       [professor.uuid],
     );
 
