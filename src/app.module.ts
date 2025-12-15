@@ -87,6 +87,11 @@ export class AppModule implements NestModule {
         { path: 'turmas/(.*)', method: RequestMethod.GET },
         { path: 'departamentos', method: RequestMethod.GET },
         { path: 'departamentos/(.*)', method: RequestMethod.GET },
+        { path: 'noticias', method: RequestMethod.GET },
+        { path: 'noticias/(.*)', method: RequestMethod.GET },
+        { path: 'uploads/(.*)', method: RequestMethod.GET },
+        { path: '/uploads/(.*)', method: RequestMethod.GET },
+        { path: 'api/uploads/(.*)', method: RequestMethod.GET },
       )
       .forRoutes('*');
   }

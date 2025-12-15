@@ -4,20 +4,25 @@ import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthMiddleware implements NestMiddleware {
-  constructor(private jwtService: JwtService) {}
+  constructor(private jwtService: JwtService) { }
 
   async use(req: Request, res: Response, next: NextFunction) {
     // Use originalUrl para pegar a URL completa (p.ex. com query string)
     const originalUrl = (req as any).originalUrl || req.url || req.path;
+
     const isAuthRoute =
       originalUrl === '/auth/login' || originalUrl.startsWith('/auth/google');
-    
+
     // Rotas que permitem acesso opcional (com ou sem token)
     // /projetos/:uuid (GET) - permite visualizar projetos públicos sem login
-    const isOptionalAuthRoute = 
-      req.method === 'GET' && 
-      /^\/projetos\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(originalUrl.split('?')[0]);
-      
+    const path = originalUrl.split('?')[0];
+    const isOptionalAuthRoute =
+      req.method === 'GET' &&
+      (
+        /^\/projetos\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(path) ||
+        path.includes('/noticias')
+      );
+
     const token = this.extractTokenFromHeader(req);
 
     // Se a rota é de autenticação, não requer validação de token

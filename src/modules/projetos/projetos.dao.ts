@@ -931,11 +931,11 @@ export class ProjetosDao {
     }
 
     const result = await this.pool.query(
-      `SELECT uuid FROM professores WHERE uuid = ANY($1::uuid[])`,
+      `SELECT usuario_uuid FROM professores WHERE usuario_uuid = ANY($1::uuid[])`,
       [professoresUuids],
     );
 
-    const validos = result.rows.map(row => row.uuid);
+    const validos = result.rows.map(row => row.usuario_uuid);
     const invalidos = professoresUuids.filter(uuid => !validos.includes(uuid));
 
     return { validos, invalidos };
