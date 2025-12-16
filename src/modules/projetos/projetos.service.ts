@@ -18,12 +18,15 @@ import {
 } from './dto/create-projeto.dto';
 import { censurarEmail } from '../../common/utils/email-validator.util';
 import { JwtPayload } from 'src/common/interfaces/jwt-payload.interface';
+import { NotificacoesService } from '../notificacoes/notificacoes.service';
+import { formatarDiff, diffLista } from '../../common/utils/diff.util';
 
 @Injectable()
 export class ProjetosService {
   constructor(
     @Inject('PG_POOL') private readonly pool: Pool,
     private readonly projetosDao: ProjetosDao,
+    private readonly notificacoesService: NotificacoesService,
   ) { }
 
   /**
@@ -101,6 +104,14 @@ export class ProjetosService {
 
       await client.query('COMMIT');
 
+      await this.notificacoesService.criarNotificacao(
+        usuario.uuid,
+        'PROJETO_CRIADO',
+        'Projeto criado',
+        `Seu projeto "${dados.titulo}" foi criado.`,
+        `/projetos/${projetoUuid}`,
+      );
+
       return {
         uuid: projetoUuid,
         mensagem: 'Rascunho criado com sucesso. Prossiga para o Passo 2.',
@@ -169,6 +180,31 @@ export class ProjetosService {
       );
 
       await client.query('COMMIT');
+
+      const labels = {
+        curso: 'Curso',
+        turma: 'Turma',
+        modalidade: 'Modalidade',
+        unidade_curricular: 'Unidade curricular',
+        itinerario: 'Itinerário',
+        senai_lab: 'SENAI Lab',
+        saga_senai: 'Saga SENAI',
+      } as any;
+      const diff = formatarDiff(dadosAnteriores, dados, undefined, labels);
+      if (diff && diff.length > 0) {
+        await this.notificacoesService.notificarAutores(
+          projetoUuid,
+          'PROJETO_ATUALIZADO',
+          'Projeto atualizado',
+          `O projeto "${projeto.titulo}" teve alterações:\n${diff}`,
+        );
+        await this.notificacoesService.notificarOrientadores(
+          projetoUuid,
+          'PROJETO_ATUALIZADO',
+          'Projeto atualizado',
+          `O projeto "${projeto.titulo}" teve alterações:\n${diff}`,
+        );
+      }
 
       return {
         mensagem: 'Informações acadêmicas atualizadas. Prossiga para o Passo 3.',
@@ -286,6 +322,31 @@ export class ProjetosService {
 
       await client.query('COMMIT');
 
+      const antigosAutoresUuids = autoresAnteriores.map(a => String(a.usuario_uuid));
+      const novosAutoresUuids = (dados.autores || []).map(a => String(a.usuario_uuid));
+      const autoresDiff = diffLista(antigosAutoresUuids, novosAutoresUuids);
+      for (const uuid of autoresDiff.adicionados) {
+        await this.notificacoesService.criarNotificacao(
+          uuid,
+          'VINCULO_ADICIONADO',
+          'Você foi adicionado ao projeto',
+          `Você foi adicionado ao projeto "${projeto.titulo}"`,
+          `/projetos/${projetoUuid}`,
+        );
+      }
+      const antigosOrientadoresUuids = orientadoresAnteriores.map(o => String(o.usuario_uuid));
+      const novosOrientadoresUuids = (dados.orientadores_uuids || []).map(String);
+      const orientadoresDiff = diffLista(antigosOrientadoresUuids, novosOrientadoresUuids);
+      for (const uuid of orientadoresDiff.adicionados) {
+        await this.notificacoesService.criarNotificacao(
+          uuid,
+          'VINCULO_ADICIONADO',
+          'Você foi adicionado ao projeto',
+          `Você foi adicionado ao projeto "${projeto.titulo}"`,
+          `/projetos/${projetoUuid}`,
+        );
+      }
+
       return {
         mensagem: 'Equipe adicionada com sucesso. Prossiga para o Passo 4.',
       };
@@ -373,6 +434,25 @@ export class ProjetosService {
       await this.projetosDao.atualizarFaseAtual(projetoUuid, novaFase, client);
 
       await client.query('COMMIT');
+
+      const fasesAlteradas: string[] = [];
+      if (dados.ideacao) fasesAlteradas.push('Ideação');
+      if (dados.modelagem) fasesAlteradas.push('Modelagem');
+      if (dados.prototipagem) fasesAlteradas.push('Prototipagem');
+      if (dados.implementacao) fasesAlteradas.push('Implementação');
+      const resumo = fasesAlteradas.length > 0 ? `Fases alteradas: ${fasesAlteradas.join(', ')}` : '';
+      await this.notificacoesService.notificarAutores(
+        projetoUuid,
+        'PROJETO_ATUALIZADO',
+        'Projeto atualizado',
+        `O projeto "${projeto.titulo}" teve atualizações nas fases. ${resumo}`,
+      );
+      await this.notificacoesService.notificarOrientadores(
+        projetoUuid,
+        'PROJETO_ATUALIZADO',
+        'Projeto atualizado',
+        `O projeto "${projeto.titulo}" teve atualizações nas fases. ${resumo}`,
+      );
 
       return {
         mensagem: 'Fases do projeto salvas com sucesso. Prossiga para o Passo 5.',
@@ -474,6 +554,19 @@ export class ProjetosService {
       );
 
       await client.query('COMMIT');
+
+      await this.notificacoesService.notificarAutores(
+        projetoUuid,
+        'PROJETO_PUBLICADO',
+        'Projeto publicado',
+        `O projeto "${projeto.titulo}" foi publicado.`,
+      );
+      await this.notificacoesService.notificarOrientadores(
+        projetoUuid,
+        'PROJETO_PUBLICADO',
+        'Projeto publicado',
+        `O projeto "${projeto.titulo}" foi publicado.`,
+      );
 
       return {
         mensagem: 'Projeto publicado com sucesso! Agora ele está visível para todos.',
@@ -625,6 +718,32 @@ export class ProjetosService {
         usuario.userAgent,
         client,
       );
+      
+      const labels = {
+        titulo: 'Título',
+        descricao: 'Descrição',
+        repositorio_url: 'Repositório',
+        itinerario: 'Itinerário',
+        lab_maker: 'Lab Maker',
+        participou_saga: 'Participou da Saga',
+        categoria: 'Categoria',
+        banner_url: 'Banner',
+      } as any;
+      const diff = formatarDiff(projeto, dados, Object.keys(dados || {}), labels);
+      if (diff && diff.length > 0) {
+        await this.notificacoesService.notificarAutores(
+          projetoUuid,
+          'PROJETO_ATUALIZADO',
+          'Projeto atualizado',
+          `O projeto "${projeto.titulo}" teve alterações:\n${diff}`,
+        );
+        await this.notificacoesService.notificarOrientadores(
+          projetoUuid,
+          'PROJETO_ATUALIZADO',
+          'Projeto atualizado',
+          `O projeto "${projeto.titulo}" teve alterações:\n${diff}`,
+        );
+      }
 
       return { mensagem: 'Projeto atualizado com sucesso' };
     } catch (error) {
