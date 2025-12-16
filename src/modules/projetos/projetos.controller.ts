@@ -8,7 +8,10 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { ProjetosService } from './projetos.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -73,15 +76,23 @@ export class ProjetosController {
    * POST /projetos/:uuid/passo4
    * Salva fases do projeto com descrições e anexos (Passo 4)
    * Campos: ideacao, modelagem, prototipagem, implementacao
+   * Aceita múltiplos arquivos via multipart/form-data
+   * 
+   * Formato dos campos de arquivo:
+   * - ideacao_crazy8
+   * - modelagem_wireframe
+   * - etc.
    */
   @Post(':uuid/passo4')
   @UseGuards(AuthGuard('jwt'))
+  @UseInterceptors(AnyFilesInterceptor()) // Aceita arquivos com qualquer fieldname
   async salvarFasesPasso4(
     @Param('uuid') uuid: string,
     @Body() dados: Passo4ProjetoDto,
+    @UploadedFiles() arquivos: Express.Multer.File[],
     @CurrentUser() usuario: any,
   ) {
-    return this.projetosService.salvarFasesPasso4(uuid, dados, usuario);
+    return this.projetosService.salvarFasesPasso4(uuid, dados, arquivos, usuario);
   }
 
   /**

@@ -142,8 +142,8 @@ export class AnexoFaseDto {
   nome_arquivo: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'URL do arquivo é obrigatória' })
-  url_arquivo: string;
+  @IsOptional()
+  url_arquivo?: string;
 
   @IsOptional()
   tamanho_bytes?: number;

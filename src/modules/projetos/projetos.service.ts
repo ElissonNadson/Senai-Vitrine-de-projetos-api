@@ -364,6 +364,7 @@ export class ProjetosService {
   async salvarFasesPasso4(
     projetoUuid: string,
     dados: Passo4ProjetoDto,
+    arquivos: Express.Multer.File[],
     usuario: JwtPayload,
   ): Promise<{ mensagem: string }> {
     const projeto = await this.projetosDao.buscarPorUuid(projetoUuid);
@@ -383,8 +384,19 @@ export class ProjetosService {
     try {
       await client.query('BEGIN');
 
+      // Importar função de upload
+      const { salvarArquivoLocal, validarArquivoCompleto } = require('../../common/utils/file-upload.util');
+
       // Captura fases anteriores para auditoria
       const fasesAnteriores = await this.projetosDao.buscarFasesProjeto(projetoUuid);
+
+      // Mapear arquivos recebidos por fieldname
+      const arquivosPorCampo = new Map<string, Express.Multer.File>();
+      if (arquivos && arquivos.length > 0) {
+        for (const arquivo of arquivos) {
+          arquivosPorCampo.set(arquivo.fieldname, arquivo);
+        }
+      }
 
       // Salvar cada fase
       const fases = [
@@ -405,11 +417,32 @@ export class ProjetosService {
             client,
           );
 
-          // Remover anexos antigos e salvar novos
-          await this.projetosDao.removerAnexosFase(faseUuid, client);
-
+          // Processar anexos enviados no payload (podem ser URLs já existentes ou novos)
           if (fase.dados.anexos && fase.dados.anexos.length > 0) {
             for (const anexo of fase.dados.anexos) {
+              // Verificar se há arquivo físico para este anexo
+              const fieldname = `${fase.nome}_${anexo.tipo}`;
+              const arquivo = arquivosPorCampo.get(fieldname);
+
+              if (arquivo) {
+                // Validar arquivo
+                await validarArquivoCompleto(arquivo, 'ANEXO_DOCUMENTO');
+                
+                // Salvar arquivo no disco
+                const caminhoRelativo = await salvarArquivoLocal(
+                  arquivo,
+                  `projetos/${fase.nome}`
+                );
+
+                // Atualizar anexo com URL do arquivo salvo
+                anexo.url_arquivo = caminhoRelativo;
+                anexo.nome_arquivo = arquivo.originalname;
+                anexo.tamanho_bytes = arquivo.size;
+                anexo.mime_type = arquivo.mimetype;
+              }
+
+              // Salvar ou atualizar anexo no banco (UPSERT)
+              // Isso vai sobrescrever apenas o anexo específico pelo tipo
               await this.projetosDao.salvarAnexoFase(faseUuid, anexo, client);
             }
           }
@@ -632,12 +665,64 @@ export class ProjetosService {
       }));
     }
 
+    // Verifica se deve proteger URLs de anexos privados
+    let fasesFiltradas = fases;
+    if (projeto.anexos_visibilidade === 'Privado') {
+      // Verifica se o usuário tem permissão para ver os anexos
+      let temPermissaoAnexos = false;
+      
+      if (usuario) {
+        if (usuario.tipo === 'ADMIN') {
+          temPermissaoAnexos = true;
+        } else if (usuario.tipo === 'ALUNO') {
+          temPermissaoAnexos = await this.projetosDao.verificarAutorProjeto(uuid, usuario.uuid);
+        } else if (usuario.tipo === 'PROFESSOR') {
+          temPermissaoAnexos = await this.projetosDao.verificarOrientadorProjeto(uuid, usuario.uuid);
+        }
+      }
+
+      // Para anexos privados, sempre modifica as URLs
+      fasesFiltradas = Object.keys(fases).reduce((acc, faseName) => {
+        const fase = fases[faseName];
+        if (fase && fase.anexos) {
+          acc[faseName] = {
+            ...fase,
+            anexos: fase.anexos.map(anexo => {
+              if (!temPermissaoAnexos) {
+                // Sem permissão: remove a URL completamente
+                return {
+                  ...anexo,
+                  url_arquivo: undefined,
+                };
+              } else {
+                // Com permissão: troca para endpoint protegido
+                // De: /api/uploads/projetos/ideacao/arquivo.pdf
+                // Para: /api/projetos/:uuid/anexo/ideacao/arquivo.pdf
+                const urlOriginal = anexo.url_arquivo || '';
+                const match = urlOriginal.match(/\/uploads\/projetos\/(.*)/);
+                if (match) {
+                  return {
+                    ...anexo,
+                    url_arquivo: `/api/projetos/${uuid}/anexo/${match[1]}`,
+                  };
+                }
+                return anexo;
+              }
+            })
+          };
+        } else {
+          acc[faseName] = fase;
+        }
+        return acc;
+      }, {});
+    }
+
     return {
       ...projeto,
       autores: autoresCensurados,
       orientadores: orientadoresCensurados,
       tecnologias,
-      fases,
+      fases: fasesFiltradas,
     };
   }
 
@@ -710,7 +795,7 @@ export class ProjetosService {
       await this.projetosDao.registrarAuditoria(
         projetoUuid,
         usuario.uuid,
-        'ATUALIZACAO GERAL',
+        'UPLOAD_ANEXO_FASE',
         'Dados do projeto atualizados',
         dadosAnteriores,
         dados,
@@ -937,6 +1022,29 @@ export class ProjetosService {
     };
 
     return regras[usuario.tipo]?.() ?? false;
+  }
+
+  /**
+   * Busca apenas as informações básicas do projeto (para verificação de anexo)
+   */
+  async buscarProjetoParaAnexo(uuid: string): Promise<{ anexos_visibilidade: string } | null> {
+    const projeto = await this.projetosDao.buscarPorUuid(uuid);
+    if (!projeto) return null;
+    return { anexos_visibilidade: projeto.anexos_visibilidade };
+  }
+
+  /**
+   * Verifica se usuário é autor do projeto
+   */
+  async verificarAutorProjeto(projetoUuid: string, usuarioUuid: string): Promise<boolean> {
+    return this.projetosDao.verificarAutorProjeto(projetoUuid, usuarioUuid);
+  }
+
+  /**
+   * Verifica se usuário é orientador do projeto
+   */
+  async verificarOrientadorProjeto(projetoUuid: string, usuarioUuid: string): Promise<boolean> {
+    return this.projetosDao.verificarOrientadorProjeto(projetoUuid, usuarioUuid);
   }
 
 }
