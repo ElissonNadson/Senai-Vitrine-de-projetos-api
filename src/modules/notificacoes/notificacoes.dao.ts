@@ -20,7 +20,7 @@ export class NotificacoesDao {
 
     const result = await db.query(
       `INSERT INTO notificacoes (
-        usuario_uuid, tipo, titulo, mensagem, link_relacionado
+        usuario_uuid, tipo, titulo, mensagem, link
       ) VALUES ($1, $2, $3, $4, $5)
       RETURNING uuid`,
       [usuarioUuid, tipo, titulo, mensagem, linkRelacionado],
