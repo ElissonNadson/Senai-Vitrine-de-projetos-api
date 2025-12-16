@@ -7,6 +7,7 @@ import {
 import { Pool } from 'pg';
 import { NotificacoesDao } from './notificacoes.dao';
 import { enqueueEmail } from '../../common/publishers/emailPublisher';
+import { assuntoPorTipo } from '../../common/utils/email-templates.util';
 
 @Injectable()
 export class NotificacoesService {
@@ -28,10 +29,11 @@ export class NotificacoesService {
     const usuarios = Array.isArray(usuarioUuid) ? usuarioUuid : [usuarioUuid];
 
     for (const uuid of usuarios) {
+      const subjectTitle = titulo || assuntoPorTipo(tipo);
       await this.notificacoesDao.criarNotificacao(
         uuid,
         tipo,
-        titulo,
+        subjectTitle,
         mensagem,
         linkRelacionado,
       );
@@ -47,7 +49,7 @@ export class NotificacoesService {
           if (user && user.email) {
             await enqueueEmail({
               to: { email: user.email, name: user.nome },
-              subject: titulo,
+              subject: subjectTitle,
               textContent: mensagem,
               htmlContent: `<p>${mensagem.replace(/\n/g, '<br/>')}</p>${linkRelacionado ? `<p><a href="${linkRelacionado}">Ver detalhes</a></p>` : ''}`,
               tipo,
