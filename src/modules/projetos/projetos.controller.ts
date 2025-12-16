@@ -195,6 +195,16 @@ export class ProjetosController {
   }
 
   /**
+   * GET /projetos/:uuid/tem-permissao-editar
+   * Verifica se o usuário logado tem permissão para editar o projeto
+   */
+  @Get(':uuid/tem-permissao-editar')
+  @UseGuards(AuthGuard('jwt'))
+  async temPermissaoEditar(@Param('uuid') uuid: string, @CurrentUser() usuario: any) {
+    return this.projetosService.podeEditarProjeto(usuario, uuid);
+  }
+
+  /**
    * PATCH /projetos/:uuid
    * Atualiza projeto existente
    */

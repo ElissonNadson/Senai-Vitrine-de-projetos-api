@@ -17,6 +17,7 @@ import {
   UpdateProjetoDto,
 } from './dto/create-projeto.dto';
 import { censurarEmail } from '../../common/utils/email-validator.util';
+import { JwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 
 @Injectable()
 export class ProjetosService {
@@ -30,11 +31,11 @@ export class ProjetosService {
    */
   async criarPasso1(
     dados: Passo1ProjetoDto,
-    usuario: any,
+    usuario: JwtPayload,
   ): Promise<{ uuid: string; mensagem: string }> {
-    // Valida que usuário é aluno
-    if (usuario.tipo !== 'ALUNO') {
-      throw new ForbiddenException('Apenas alunos podem criar projetos');
+    // Valida que usuário é aluno ou professor
+    if (usuario.tipo !== 'ALUNO' && usuario.tipo !== 'PROFESSOR') {
+      throw new ForbiddenException('Apenas alunos e professores podem criar projetos');
     }
 
     // Verifica se título já existe
@@ -53,33 +54,45 @@ export class ProjetosService {
     try {
       await client.query('BEGIN');
 
-      // Busca UUID do aluno
-      // Cria rascunho (passa usuario.uuid para as FKs criado_por_uuid e lider_uuid)
+      // Se for aluno, ele é o líder. Se for professor, líder é NULL inicialmente.
+      const liderUuid = usuario.tipo === 'ALUNO' ? usuario.uuid : null;
+
+      // Cria rascunho
       const projetoUuid = await this.projetosDao.criarRascunho(
         dados,
         usuario.uuid,
+        liderUuid,
         client,
       );
 
-      // Adiciona criador como líder automaticamente
-      await this.projetosDao.adicionarAutores(
-        projetoUuid,
-        [{ usuario_uuid: usuario.uuid, papel: 'LIDER' }],
-        client,
-      );
+      // Associar criador ao projeto
+      if (usuario.tipo === 'ALUNO') {
+        await this.projetosDao.adicionarAutores(
+          projetoUuid,
+          [{ usuario_uuid: usuario.uuid, papel: 'LIDER' }],
+          client,
+        );
+      } else {
+        // Professor entra como Orientador
+        await this.projetosDao.adicionarOrientadores(
+          projetoUuid,
+          [usuario.uuid],
+          client
+        );
+      }
 
       // Registra auditoria
       await this.projetosDao.registrarAuditoria(
         projetoUuid,
         usuario.uuid,
         'CRIACAO',
-        'Projeto criado pelo aluno',
+        `Projeto criado pelo ${usuario.tipo.toLowerCase()}`,
         null,
         {
           titulo: dados.titulo,
           descricao: dados.descricao,
           categoria: dados.categoria,
-          lider_uuid: usuario.uuid,
+          lider_uuid: liderUuid,
         },
         usuario.ip,
         usuario.userAgent,
@@ -106,7 +119,7 @@ export class ProjetosService {
   async atualizarInformacoesAcademicas(
     projetoUuid: string,
     dados: Passo2ProjetoDto,
-    usuario: any,
+    usuario: JwtPayload,
   ): Promise<{ mensagem: string }> {
     const projeto = await this.projetosDao.buscarPorUuid(projetoUuid);
 
@@ -114,23 +127,7 @@ export class ProjetosService {
       throw new NotFoundException('Projeto não encontrado');
     }
 
-    // Verifica permissão
-    const alunoResult = await this.pool.query(
-      'SELECT 1 FROM alunos WHERE usuario_uuid = $1',
-      [usuario.uuid],
-    );
-
-    if (alunoResult.rows.length === 0) {
-      throw new ForbiddenException('Apenas alunos podem editar este projeto');
-    }
-
-    const alunoUuid = usuario.uuid;
-    const isAutor = await this.projetosDao.verificarAutorProjeto(
-      projetoUuid,
-      alunoUuid,
-    );
-
-    if (!isAutor && usuario.tipo !== 'ADMIN') {
+    if (!(await this.podeEditarProjeto(usuario, projetoUuid))) {
       throw new ForbiddenException(
         'Você não tem permissão para editar este projeto',
       );
@@ -190,7 +187,7 @@ export class ProjetosService {
   async adicionarEquipePasso3(
     projetoUuid: string,
     dados: Passo3ProjetoDto,
-    usuario: any,
+    usuario: JwtPayload,
   ): Promise<{ mensagem: string }> {
     const projeto = await this.projetosDao.buscarPorUuid(projetoUuid);
 
@@ -198,23 +195,8 @@ export class ProjetosService {
       throw new NotFoundException('Projeto não encontrado');
     }
 
-    // Verifica permissão
-    const alunoResult = await this.pool.query(
-      'SELECT 1 FROM alunos WHERE usuario_uuid = $1',
-      [usuario.uuid],
-    );
-
-    if (alunoResult.rows.length === 0) {
-      throw new ForbiddenException('Apenas alunos podem editar este projeto');
-    }
-
-    const alunoUuid = usuario.uuid;
-    const isAutor = await this.projetosDao.verificarAutorProjeto(
-      projetoUuid,
-      alunoUuid,
-    );
-
-    if (!isAutor && usuario.tipo !== 'ADMIN') {
+    // Verificação de permissão unificada
+    if (!(await this.podeEditarProjeto(usuario, projetoUuid))) {
       throw new ForbiddenException(
         'Você não tem permissão para editar este projeto',
       );
@@ -249,6 +231,15 @@ export class ProjetosService {
 
     try {
       await client.query('BEGIN');
+
+      // Se houve mudança de líder ou se líder era null, atualizamos a tabela projetos
+      const novaLiderUuid = lideres[0].usuario_uuid;
+      if (projeto.lider_uuid !== novaLiderUuid) {
+        await client.query(
+          'UPDATE projetos SET lider_uuid = $1 WHERE uuid = $2',
+          [novaLiderUuid, projetoUuid]
+        );
+      }
 
       // Captura equipe anterior para auditoria
       const autoresAnteriores = await this.projetosDao.buscarAutores(projetoUuid);
@@ -312,7 +303,7 @@ export class ProjetosService {
   async salvarFasesPasso4(
     projetoUuid: string,
     dados: Passo4ProjetoDto,
-    usuario: any,
+    usuario: JwtPayload,
   ): Promise<{ mensagem: string }> {
     const projeto = await this.projetosDao.buscarPorUuid(projetoUuid);
 
@@ -320,23 +311,7 @@ export class ProjetosService {
       throw new NotFoundException('Projeto não encontrado');
     }
 
-    // Verifica permissão
-    const alunoResult = await this.pool.query(
-      'SELECT 1 FROM alunos WHERE usuario_uuid = $1',
-      [usuario.uuid],
-    );
-
-    if (alunoResult.rows.length === 0) {
-      throw new ForbiddenException('Apenas alunos podem editar este projeto');
-    }
-
-    const alunoUuid = usuario.uuid;
-    const isAutor = await this.projetosDao.verificarAutorProjeto(
-      projetoUuid,
-      alunoUuid,
-    );
-
-    if (!isAutor && usuario.tipo !== 'ADMIN') {
+    if (!(await this.podeEditarProjeto(usuario, projetoUuid))) {
       throw new ForbiddenException(
         'Você não tem permissão para editar este projeto',
       );
@@ -416,7 +391,7 @@ export class ProjetosService {
   async configurarRepositorioPasso5(
     projetoUuid: string,
     dados: Passo5ProjetoDto,
-    usuario: any,
+    usuario: JwtPayload,
   ): Promise<{ mensagem: string }> {
     const projeto = await this.projetosDao.buscarPorUuid(projetoUuid);
 
@@ -424,26 +399,16 @@ export class ProjetosService {
       throw new NotFoundException('Projeto não encontrado');
     }
 
-    // Verifica permissão
-    const alunoResult = await this.pool.query(
-      'SELECT 1 FROM alunos WHERE usuario_uuid = $1',
-      [usuario.uuid],
-    );
-
-    if (alunoResult.rows.length === 0) {
-      throw new ForbiddenException('Apenas alunos podem editar este projeto');
-    }
-
-    const alunoUuid = usuario.uuid;
-    const isAutor = await this.projetosDao.verificarAutorProjeto(
-      projetoUuid,
-      alunoUuid,
-    );
-
-    if (!isAutor && usuario.tipo !== 'ADMIN') {
+    // Verificação de permissão unificada
+    if (!(await this.podeEditarProjeto(usuario, projetoUuid))) {
       throw new ForbiddenException(
         'Você não tem permissão para editar este projeto',
       );
+    }
+
+    // VALIDAR SE TEM LÍDER DEFINIDO ANTES DE PUBLICAR
+    if (!projeto.lider_uuid && usuario.tipo !== 'ADMIN') {
+      throw new BadRequestException('Para publicar o projeto, é obrigatório definir um Aluno Líder na etapa 3 "Equipe".');
     }
 
     // Valida que termos foram aceitos
@@ -541,17 +506,9 @@ export class ProjetosService {
       let temPermissao = usuario.tipo === 'ADMIN';
 
       if (!temPermissao && usuario.tipo === 'ALUNO') {
-        temPermissao = await this.projetosDao.verificarAutorProjeto(
-          uuid,
-          usuario.uuid,
-        );
-      }
-
-      if (!temPermissao && usuario.tipo === 'PROFESSOR') {
-        temPermissao = await this.projetosDao.verificarOrientadorProjeto(
-          uuid,
-          usuario.uuid,
-        );
+        temPermissao = await this.projetosDao.verificarAutorProjeto(uuid,usuario.uuid);
+      } else if (!temPermissao && usuario.tipo === 'PROFESSOR') {
+        temPermissao = await this.projetosDao.verificarOrientadorProjeto(uuid,usuario.uuid);
       }
 
       if (!temPermissao) {
@@ -610,7 +567,7 @@ export class ProjetosService {
   async atualizarProjeto(
     projetoUuid: string,
     dados: UpdateProjetoDto,
-    usuario: any,
+    usuario: JwtPayload,
   ): Promise<{ mensagem: string }> {
     const projeto = await this.projetosDao.buscarPorUuid(projetoUuid);
 
@@ -619,23 +576,7 @@ export class ProjetosService {
     }
 
     // Verifica permissão
-    let temPermissao = usuario.tipo === 'ADMIN';
-
-    if (!temPermissao) {
-      if (usuario.tipo === 'ALUNO') {
-        temPermissao = await this.projetosDao.verificarAutorProjeto(
-          projetoUuid,
-          usuario.uuid,
-        );
-      } else if (usuario.tipo === 'PROFESSOR') {
-        temPermissao = await this.projetosDao.verificarOrientadorProjeto(
-          projetoUuid,
-          usuario.uuid,
-        );
-      }
-    }
-
-    if (!temPermissao) {
+    if (!(await this.podeEditarProjeto(usuario, projetoUuid))) {
       throw new ForbiddenException(
         'Você não tem permissão para editar este projeto',
       );
@@ -659,9 +600,31 @@ export class ProjetosService {
       await client.query('BEGIN');
 
       // Atualiza campos básicos
+      const dadosAnteriores = {
+        titulo: projeto.titulo,
+        descricao: projeto.descricao,
+        categoria: projeto.categoria,
+        repositorio_url: projeto.repositorio_url,
+        itinerario: projeto.itinerario,
+        lab_maker: projeto.senai_lab,
+        participou_saga: projeto.saga_senai,
+        banner_url: projeto.banner_url,
+      };
       await this.projetosDao.atualizarProjeto(projetoUuid, dados, client);
 
       await client.query('COMMIT');
+
+      await this.projetosDao.registrarAuditoria(
+        projetoUuid,
+        usuario.uuid,
+        'ATUALIZACAO GERAL',
+        'Dados do projeto atualizados',
+        dadosAnteriores,
+        dados,
+        usuario.ip,
+        usuario.userAgent,
+        client,
+      );
 
       return { mensagem: 'Projeto atualizado com sucesso' };
     } catch (error) {
@@ -677,7 +640,7 @@ export class ProjetosService {
    */
   async deletarProjeto(
     projetoUuid: string,
-    usuario: any,
+    usuario: JwtPayload,
   ): Promise<{ mensagem: string }> {
     const projeto = await this.projetosDao.buscarPorUuid(projetoUuid);
 
@@ -721,7 +684,7 @@ export class ProjetosService {
   /**
    * Lista projetos do usuário logado (publicados e rascunhos)
    */
-  async listarMeusProjetos(usuario: any): Promise<{ publicados: any[]; rascunhos: any[] }> {
+  async listarMeusProjetos(usuario: JwtPayload): Promise<{ publicados: any[]; rascunhos: any[] }> {
     if (!usuario || !usuario.uuid) {
       throw new ForbiddenException('Usuário não autenticado');
     }
@@ -840,4 +803,21 @@ export class ProjetosService {
   async visualizarProjeto(uuid: string): Promise<void> {
     await this.projetosDao.incrementarVisualizacoes(uuid);
   }
+
+  async podeEditarProjeto(
+    usuario: JwtPayload,
+    projetoUuid: string,
+  ): Promise<boolean> {
+    if (usuario.tipo === 'ADMIN') return true;
+
+    const regras = {
+      ALUNO: () =>
+        this.projetosDao.verificarAutorProjeto(projetoUuid, usuario.uuid),
+      PROFESSOR: () =>
+        this.projetosDao.verificarOrientadorProjeto(projetoUuid, usuario.uuid),
+    };
+
+    return regras[usuario.tipo]?.() ?? false;
+  }
+
 }

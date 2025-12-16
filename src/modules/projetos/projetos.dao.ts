@@ -32,6 +32,7 @@ export class ProjetosDao {
   async criarRascunho(
     dados: any,
     usuarioUuid: string,
+    liderUuid: string | null,
     client?: PoolClient,
   ): Promise<string> {
     const db = client || this.pool;
@@ -41,13 +42,14 @@ export class ProjetosDao {
       `INSERT INTO projetos (
         titulo, descricao, categoria, 
         criado_por_uuid, lider_uuid, fase_atual, status
-      ) VALUES ($1, $2, $3, $4, $4, 'IDEACAO', 'RASCUNHO')
+      ) VALUES ($1, $2, $3, $4, $5, 'IDEACAO', 'RASCUNHO')
       RETURNING uuid`,
       [
         dados.titulo,
         dados.descricao,
         dados.categoria,
-        usuarioUuid
+        usuarioUuid,
+        liderUuid
       ],
     );
 
