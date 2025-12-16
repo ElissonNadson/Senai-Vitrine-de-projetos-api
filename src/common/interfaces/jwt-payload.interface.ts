@@ -7,4 +7,6 @@ export interface JwtPayload {
   googleId?: string;
   iat?: number;
   exp?: number;
+  userAgent?: string;
+  ip?: string;
 }
