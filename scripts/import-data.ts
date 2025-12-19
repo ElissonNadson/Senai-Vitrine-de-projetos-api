@@ -63,7 +63,7 @@ async function run() {
         // The CSVs don't have departments. I'll re-insert default departments from seeds logic if needed or skip.
         // But Professores need department_uuid. I'll make it nullable or create a default 'Geral'.
 
-        // Re-create a default department for professors if needed
+        // Re-create a default department for docentes if needed
         const deptUuid = uuidv4();
         await client.query(`INSERT INTO departamentos (uuid, nome, sigla, ativo) VALUES ($1, 'Geral', 'GER', TRUE)`, [deptUuid]);
 
@@ -176,11 +176,11 @@ async function run() {
             }
         }
 
-        console.log('Importing Professors...');
-        const professors = await readCsv(CSV_ORIENTADORES);
+        console.log('Importing Docentes...');
+        const docentes = await readCsv(CSV_ORIENTADORES);
         // ORIENTADOR;EMAILGOOGLE
 
-        for (const row of professors) {
+        for (const row of docentes) {
             const name = row['ORIENTADOR'];
             const email = row['EMAILGOOGLE'];
 
@@ -192,16 +192,16 @@ async function run() {
             try {
                 await client.query(
                     'INSERT INTO usuarios (uuid, nome, email, google_id, tipo, primeiro_acesso, ativo) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-                    [userUuid, name, email, googleId, 'PROFESSOR', true, true]
+                    [userUuid, name, email, googleId, 'DOCENTE', true, true]
                 );
 
                 await client.query(
-                    'INSERT INTO professores (usuario_uuid, departamento_uuid) VALUES ($1, $2)',
+                    'INSERT INTO docentes (usuario_uuid, departamento_uuid) VALUES ($1, $2)',
                     [userUuid, deptUuid]
                 );
-                console.log(`Imported Professor: ${name}`);
+                console.log(`Imported Docente: ${name}`);
             } catch (e: any) {
-                console.error(`Failed to import professor ${name}: ${e.message}`);
+                console.error(`Failed to import docente ${name}: ${e.message}`);
             }
         }
 

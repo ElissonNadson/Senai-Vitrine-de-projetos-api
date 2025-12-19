@@ -15,7 +15,7 @@ export class ProgressaoService {
     @Inject('PG_POOL') private readonly pool: Pool,
     private readonly progressaoDao: ProgressaoDao,
     private readonly projetosDao: ProjetosDao,
-  ) {}
+  ) { }
 
   /**
    * Verifica se projeto pode progredir automaticamente
@@ -62,16 +62,16 @@ export class ProgressaoService {
     // Apenas admin ou orientador pode forçar progressão
     let temPermissao = usuario.tipo === 'ADMIN';
 
-    if (!temPermissao && usuario.tipo === 'PROFESSOR') {
-      const professorResult = await this.pool.query(
-        'SELECT uuid FROM professores WHERE usuario_uuid = $1',
+    if (!temPermissao && usuario.tipo === 'DOCENTE') {
+      const docenteResult = await this.pool.query(
+        'SELECT uuid FROM docentes WHERE usuario_uuid = $1',
         [usuario.uuid],
       );
 
-      if (professorResult.rows.length > 0) {
+      if (docenteResult.rows.length > 0) {
         temPermissao = await this.projetosDao.verificarOrientadorProjeto(
           projetoUuid,
-          professorResult.rows[0].uuid,
+          docenteResult.rows[0].uuid,
         );
       }
     }

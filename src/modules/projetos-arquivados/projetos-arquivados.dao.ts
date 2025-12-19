@@ -3,7 +3,7 @@ import { Pool, PoolClient } from 'pg';
 
 @Injectable()
 export class ProjetosArquivadosDao {
-  constructor(@Inject('PG_POOL') private readonly pool: Pool) {}
+  constructor(@Inject('PG_POOL') private readonly pool: Pool) { }
 
   /**
    * Verifica se o aluno pertence ao projeto
@@ -25,7 +25,7 @@ export class ProjetosArquivadosDao {
    */
   async buscarOrientadorDoProjeto(projetoUuid: string): Promise<string | null> {
     const result = await this.pool.query(
-      `SELECT usuario_uuid FROM projetos_professores 
+      `SELECT usuario_uuid FROM projetos_docentes 
        WHERE projeto_uuid = $1 
        LIMIT 1`,
       [projetoUuid],
@@ -56,7 +56,7 @@ export class ProjetosArquivadosDao {
     client?: PoolClient,
   ): Promise<any> {
     const db = client || this.pool;
-    
+
     const result = await db.query(
       `INSERT INTO projetos_arquivados 
        (projeto_uuid, aluno_uuid, orientador_uuid, justificativa, status) 
@@ -64,7 +64,7 @@ export class ProjetosArquivadosDao {
        RETURNING *`,
       [projetoUuid, alunoUuid, orientadorUuid, justificativa],
     );
-    
+
     return result.rows[0];
   }
 
@@ -87,7 +87,7 @@ export class ProjetosArquivadosDao {
        WHERE pa.uuid = $1`,
       [solicitacaoUuid],
     );
-    
+
     return result.rows[0] || null;
   }
 
@@ -108,7 +108,7 @@ export class ProjetosArquivadosDao {
        ORDER BY pa.created_at DESC`,
       [orientadorUuid],
     );
-    
+
     return result.rows;
   }
 
@@ -128,7 +128,7 @@ export class ProjetosArquivadosDao {
        ORDER BY pa.created_at DESC`,
       [alunoUuid],
     );
-    
+
     return result.rows;
   }
 
@@ -140,7 +140,7 @@ export class ProjetosArquivadosDao {
     client?: PoolClient,
   ): Promise<void> {
     const db = client || this.pool;
-    
+
     // Atualiza status da solicitação
     await db.query(
       `UPDATE projetos_arquivados 
@@ -148,13 +148,13 @@ export class ProjetosArquivadosDao {
        WHERE uuid = $1`,
       [solicitacaoUuid],
     );
-    
+
     // Busca projeto relacionado
     const solicitacao = await db.query(
       `SELECT projeto_uuid FROM projetos_arquivados WHERE uuid = $1`,
       [solicitacaoUuid],
     );
-    
+
     if (solicitacao.rows.length > 0) {
       // Atualiza status do projeto para ARQUIVADO
       await db.query(
@@ -175,7 +175,7 @@ export class ProjetosArquivadosDao {
     client?: PoolClient,
   ): Promise<void> {
     const db = client || this.pool;
-    
+
     await db.query(
       `UPDATE projetos_arquivados 
        SET status = 'NEGADO', 
@@ -217,7 +217,7 @@ export class ProjetosArquivadosDao {
        ORDER BY pa.created_at DESC`,
       [projetoUuid],
     );
-    
+
     return result.rows;
   }
 }

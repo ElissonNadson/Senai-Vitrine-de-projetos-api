@@ -35,16 +35,16 @@ export class PerfilDao {
   }
 
   /**
-   * Busca dados específicos do professor
+   * Busca dados específicos do docente
    */
-  async buscarProfessor(client: PoolClient, usuarioUuid: string): Promise<any> {
+  async buscarDocente(client: PoolClient, usuarioUuid: string): Promise<any> {
     const result = await client.query(
       `SELECT 
         p.*,
         u.nome,
         u.email,
         d.nome as departamento_nome
-       FROM professores p
+       FROM docentes p
        LEFT JOIN usuarios u ON p.usuario_uuid = u.uuid
        LEFT JOIN departamentos d ON p.departamento_uuid = d.uuid
        WHERE p.usuario_uuid = $1`,
@@ -98,15 +98,15 @@ export class PerfilDao {
   }
 
   /**
-   * Atualiza dados do professor
+   * Atualiza dados do docente
    */
-  async atualizarProfessor(
+  async atualizarDocente(
     client: PoolClient,
     usuarioUuid: string,
     dados: any,
   ): Promise<any> {
     const result = await client.query(
-      `UPDATE professores
+      `UPDATE docentes
        SET matricula = COALESCE($1, matricula),
            departamento_uuid = COALESCE($2, departamento_uuid),
            especialidade = COALESCE($3, especialidade),
@@ -152,12 +152,12 @@ export class PerfilDao {
   async verificarMatriculaExistente(
     client: PoolClient,
     matricula: string,
-    tipo: 'ALUNO' | 'PROFESSOR',
+    tipo: 'ALUNO' | 'DOCENTE',
     usuarioUuid: string,
   ): Promise<boolean> {
-    const tabela = tipo === 'ALUNO' ? 'alunos' : 'professores';
+    const tabela = tipo === 'ALUNO' ? 'alunos' : 'docentes';
     const result = await client.query(
-      `SELECT uuid FROM ${tabela}
+      `SELECT usuario_uuid FROM ${tabela}
        WHERE matricula = $1 AND usuario_uuid != $2`,
       [matricula, usuarioUuid],
     );
@@ -170,7 +170,7 @@ export class PerfilDao {
   async buscarUsuarios(
     client: PoolClient,
     termo: string,
-    tipo?: 'ALUNO' | 'PROFESSOR'
+    tipo?: 'ALUNO' | 'DOCENTE'
   ): Promise<any[]> {
     let query = `
       SELECT u.uuid, u.nome, u.email, u.avatar_url, u.tipo

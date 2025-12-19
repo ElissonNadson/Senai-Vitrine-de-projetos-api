@@ -104,11 +104,11 @@ export class ProjetosDao {
   ): Promise<void> {
     const db = client || this.pool;
 
-    for (const professorUuid of orientadoresUuids) {
+    for (const docenteUuid of orientadoresUuids) {
       await db.query(
-        `INSERT INTO projetos_professores (projeto_uuid, usuario_uuid)
+        `INSERT INTO projetos_docentes (projeto_uuid, usuario_uuid)
          VALUES ($1, $2)`,
-        [projetoUuid, professorUuid],
+        [projetoUuid, docenteUuid],
       );
     }
   }
@@ -194,9 +194,9 @@ export class ProjetosDao {
     const result = await this.pool.query(
       `SELECT pp.usuario_uuid, u.nome, u.email, u.avatar_url,
               d.nome as departamento_nome
-       FROM projetos_professores pp
+       FROM projetos_docentes pp
        INNER JOIN usuarios u ON pp.usuario_uuid = u.uuid
-       LEFT JOIN professores p ON pp.usuario_uuid = p.usuario_uuid
+       LEFT JOIN docentes p ON pp.usuario_uuid = p.usuario_uuid
        LEFT JOIN departamentos d ON p.departamento_uuid = d.uuid
        WHERE pp.projeto_uuid = $1
        ORDER BY u.nome`,
@@ -279,11 +279,11 @@ export class ProjetosDao {
    */
   async verificarOrientadorProjeto(
     projetoUuid: string,
-    professorUuid: string,
+    docenteUuid: string,
   ): Promise<boolean> {
     const result = await this.pool.query(
-      'SELECT 1 FROM projetos_professores WHERE projeto_uuid = $1 AND usuario_uuid = $2',
-      [projetoUuid, professorUuid],
+      'SELECT 1 FROM projetos_docentes WHERE projeto_uuid = $1 AND usuario_uuid = $2',
+      [projetoUuid, docenteUuid],
     );
 
     return result.rows.length > 0;
@@ -329,8 +329,8 @@ export class ProjetosDao {
           SELECT COALESCE(json_agg(json_build_object(
             'nome', u.nome
           ) ORDER BY u.nome), '[]'::json)
-          FROM projetos_professores pp
-          INNER JOIN professores prof ON pp.usuario_uuid = prof.usuario_uuid
+          FROM projetos_docentes pp
+          INNER JOIN docentes prof ON pp.usuario_uuid = prof.usuario_uuid
           INNER JOIN usuarios u ON prof.usuario_uuid = u.uuid
           WHERE pp.projeto_uuid = p.uuid
         ) as orientadores,
@@ -542,16 +542,16 @@ export class ProjetosDao {
   /**
    * Lista projetos do usuário logado (publicados e rascunhos)
    * Para ALUNO: busca projetos onde é líder
-   * Para PROFESSOR: busca projetos onde é orientador
+   * Para DOCENTE: busca projetos onde é orientador
    */
   async listarMeusProjetos(usuarioUuid: string, tipoUsuario: string = 'ALUNO'): Promise<{ publicados: any[]; rascunhos: any[] }> {
     let whereClause: string;
     let params: any[];
 
-    if (tipoUsuario.toUpperCase() === 'PROFESSOR') {
-      // Para professor, verifica se tem projetos onde é orientador
+    if (tipoUsuario.toUpperCase() === 'DOCENTE') {
+      // Para docente, verifica se tem projetos onde é orientador
       whereClause = `WHERE p.uuid IN (
-        SELECT pp.projeto_uuid FROM projetos_professores pp WHERE pp.usuario_uuid = $1
+        SELECT pp.projeto_uuid FROM projetos_docentes pp WHERE pp.usuario_uuid = $1
       ) AND p.status != 'ARQUIVADO'`;
       params = [usuarioUuid];
     } else {
@@ -582,8 +582,8 @@ export class ProjetosDao {
           SELECT COALESCE(json_agg(json_build_object(
             'nome', u.nome
           ) ORDER BY u.nome), '[]'::json)
-          FROM projetos_professores pp
-          LEFT JOIN professores prof ON pp.usuario_uuid = prof.usuario_uuid
+          FROM projetos_docentes pp
+          LEFT JOIN docentes prof ON pp.usuario_uuid = prof.usuario_uuid
           INNER JOIN usuarios u ON prof.usuario_uuid = u.uuid
           WHERE pp.projeto_uuid = p.uuid
         ) as orientadores,
@@ -925,20 +925,20 @@ export class ProjetosDao {
   }
 
   /**
-   * Valida se professores existem no banco
+   * Valida se docentes existem no banco
    */
-  async validarProfessores(professoresUuids: string[]): Promise<{ validos: string[], invalidos: string[] }> {
-    if (professoresUuids.length === 0) {
+  async validarDocentes(docentesUuids: string[]): Promise<{ validos: string[], invalidos: string[] }> {
+    if (docentesUuids.length === 0) {
       return { validos: [], invalidos: [] };
     }
 
     const result = await this.pool.query(
-      `SELECT usuario_uuid FROM professores WHERE usuario_uuid = ANY($1::uuid[])`,
-      [professoresUuids],
+      `SELECT usuario_uuid FROM docentes WHERE usuario_uuid = ANY($1::uuid[])`,
+      [docentesUuids],
     );
 
     const validos = result.rows.map(row => row.usuario_uuid);
-    const invalidos = professoresUuids.filter(uuid => !validos.includes(uuid));
+    const invalidos = docentesUuids.filter(uuid => !validos.includes(uuid));
 
     return { validos, invalidos };
   }
@@ -971,10 +971,10 @@ export class ProjetosDao {
   }
 
   /**
-   * Busca informações completas de professores para validação
+   * Busca informações completas de docentes para validação
    */
-  async buscarProfessoresParaValidacao(professoresUuids: string[]): Promise<any[]> {
-    if (professoresUuids.length === 0) {
+  async buscarDocentesParaValidacao(docentesUuids: string[]): Promise<any[]> {
+    if (docentesUuids.length === 0) {
       return [];
     }
 
@@ -985,25 +985,25 @@ export class ProjetosDao {
         u.email,
         u.avatar_url,
         d.nome as departamento_nome
-       FROM professores p
+       FROM docentes p
        INNER JOIN usuarios u ON p.usuario_uuid = u.uuid
        LEFT JOIN departamentos d ON p.departamento_uuid = d.uuid
        WHERE p.uuid = ANY($1::uuid[])`,
-      [professoresUuids],
+      [docentesUuids],
     );
 
     return result.rows;
   }
 
   /**
-   * Resolve usuários por email, retornando apenas alunos e professores
+   * Resolve usuários por email, retornando apenas alunos e docentes
    */
   async resolverUsuariosPorEmail(emails: string[]): Promise<{
     alunos: { email: string; usuario_uuid: string; nome: string }[];
-    professores: { email: string; string; usuario_uuid: string; nome: string }[];
+    docentes: { email: string; usuario_uuid: string; nome: string }[];
   }> {
     if (!emails || emails.length === 0) {
-      return { alunos: [], professores: [] };
+      return { alunos: [], docentes: [] };
     }
 
     const normalized = emails.map(e => e.toLowerCase());
@@ -1021,7 +1021,7 @@ export class ProjetosDao {
          END AS usuario_uuid
        FROM usuarios u
        LEFT JOIN alunos a ON a.usuario_uuid = u.uuid AND u.tipo = 'ALUNO'
-       LEFT JOIN professores p ON p.usuario_uuid = u.uuid AND u.tipo = 'PROFESSOR'
+       LEFT JOIN docentes p ON p.usuario_uuid = u.uuid AND u.tipo = 'DOCENTE'
        WHERE LOWER(u.email) = ANY($1::text[])`,
       [normalized],
     );
@@ -1030,11 +1030,11 @@ export class ProjetosDao {
       .filter(r => r.tipo === 'ALUNO' && r.usuario_uuid)
       .map(r => ({ email: r.email, usuario_uuid: r.usuario_uuid, nome: r.nome }));
 
-    const professores = result.rows
-      .filter(r => r.tipo === 'PROFESSOR' && r.usuario_uuid)
+    const docentes = result.rows
+      .filter(r => r.tipo === 'DOCENTE' && r.usuario_uuid)
       .map(r => ({ email: r.email, usuario_uuid: r.usuario_uuid, nome: r.nome }));
 
-    return { alunos, professores };
+    return { alunos, docentes };
   }
 
   /**
@@ -1057,7 +1057,7 @@ export class ProjetosDao {
          END AS usuario_uuid
        FROM usuarios u
        LEFT JOIN alunos a ON a.usuario_uuid = u.uuid AND u.tipo = 'ALUNO'
-       LEFT JOIN professores p ON p.usuario_uuid = u.uuid AND u.tipo = 'PROFESSOR'
+       LEFT JOIN docentes p ON p.usuario_uuid = u.uuid AND u.tipo = 'DOCENTE'
        WHERE (LOWER(u.nome) LIKE $1 OR LOWER(u.email) LIKE $1)
        LIMIT 20`,
       [termoBusca],
@@ -1066,7 +1066,7 @@ export class ProjetosDao {
     return result.rows.map(row => ({
       ...row,
       // Garante que usuario_uuid seja retornado como 'uuid' para o frontend se necessario, 
-      // mas mantemos a estrutura clara de aluno/professor
+      // mas mantemos a estrutura clara de aluno/docente
     }));
   }
 }

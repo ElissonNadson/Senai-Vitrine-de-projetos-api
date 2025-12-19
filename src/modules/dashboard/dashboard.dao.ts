@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 
 @Injectable()
 export class DashboardDao {
-  constructor(@Inject('PG_POOL') private readonly pool: Pool) {}
+  constructor(@Inject('PG_POOL') private readonly pool: Pool) { }
 
   /**
    * Dashboard do Aluno
@@ -68,23 +68,23 @@ export class DashboardDao {
   }
 
   /**
-   * Dashboard do Professor
+   * Dashboard do Docente
    */
-  async getDashboardProfessor(usuarioUuid: string): Promise<any> {
-    // Busca informações do professor
-    const professorResult = await this.pool.query(
+  async getDashboardDocente(usuarioUuid: string): Promise<any> {
+    // Busca informações do docente
+    const docenteResult = await this.pool.query(
       `SELECT p.*, d.nome as departamento_nome, d.cor as departamento_cor
-       FROM professores p
+       FROM docentes p
        LEFT JOIN departamentos d ON p.departamento_uuid = d.uuid
        WHERE p.usuario_uuid = $1`,
       [usuarioUuid],
     );
 
-    if (professorResult.rows.length === 0) {
+    if (docenteResult.rows.length === 0) {
       return null;
     }
 
-    const professor = professorResult.rows[0];
+    const docente = docenteResult.rows[0];
 
     // Projetos orientados
     const projetosResult = await this.pool.query(
@@ -92,33 +92,33 @@ export class DashboardDao {
               (SELECT COUNT(*) FROM projetos_alunos pa WHERE pa.projeto_uuid = p.uuid) as total_autores,
               (SELECT COUNT(*) FROM etapas_projeto ep WHERE ep.projeto_uuid = p.uuid AND ep.status = 'PENDENTE_ORIENTADOR') as pendencias
        FROM projetos p
-       INNER JOIN projetos_professores pp ON p.uuid = pp.projeto_uuid
+       INNER JOIN projetos_docentes pp ON p.uuid = pp.projeto_uuid
        WHERE pp.usuario_uuid = $1
        ORDER BY p.criado_em DESC
        LIMIT 10`,
-      [professor.uuid],
+      [docente.uuid],
     );
 
     // Contadores
     const contagensResult = await this.pool.query(
       `SELECT 
-         (SELECT COUNT(*) FROM projetos_professores WHERE usuario_uuid = $1) as total_orientacoes,
+         (SELECT COUNT(*) FROM projetos_docentes WHERE usuario_uuid = $1) as total_orientacoes,
          (SELECT COUNT(DISTINCT p.uuid) 
           FROM projetos p 
-          INNER JOIN projetos_professores pp ON p.uuid = pp.projeto_uuid 
+          INNER JOIN projetos_docentes pp ON p.uuid = pp.projeto_uuid 
           WHERE pp.usuario_uuid = $1 AND p.fase_atual = 'EM_DESENVOLVIMENTO') as orientacoes_andamento,
          (SELECT COUNT(*) 
           FROM etapas_projeto ep
-          INNER JOIN projetos_professores pp ON ep.projeto_uuid = pp.projeto_uuid
+          INNER JOIN projetos_docentes pp ON ep.projeto_uuid = pp.projeto_uuid
           WHERE pp.usuario_uuid = $1 AND ep.status = 'PENDENTE_ORIENTADOR') as pendencias_feedback`,
-      [professor.uuid],
+      [docente.uuid],
     );
 
     return {
-      professor: {
-        nome: professor.nome,
-        departamento: professor.departamento_nome,
-        departamento_cor: professor.departamento_cor,
+      docente: {
+        nome: docente.nome,
+        departamento: docente.departamento_nome,
+        departamento_cor: docente.departamento_cor,
       },
       projetos: projetosResult.rows,
       estatisticas: contagensResult.rows[0],
@@ -134,7 +134,7 @@ export class DashboardDao {
       SELECT 
         (SELECT COUNT(*) FROM projetos WHERE fase_atual != 'RASCUNHO') as total_projetos,
         (SELECT COUNT(*) FROM usuarios WHERE tipo = 'ALUNO' AND ativo = TRUE) as total_alunos,
-        (SELECT COUNT(*) FROM usuarios WHERE tipo = 'PROFESSOR' AND ativo = TRUE) as total_professores,
+        (SELECT COUNT(*) FROM usuarios WHERE tipo = 'DOCENTE' AND ativo = TRUE) as total_docentes,
         (SELECT COUNT(*) FROM departamentos) as total_departamentos,
         (SELECT COUNT(*) FROM cursos WHERE ativo = TRUE) as total_cursos
     `);

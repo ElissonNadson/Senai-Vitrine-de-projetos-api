@@ -3,7 +3,7 @@ import { DashboardDao } from './dashboard.dao';
 
 @Injectable()
 export class DashboardService {
-  constructor(private readonly dashboardDao: DashboardDao) {}
+  constructor(private readonly dashboardDao: DashboardDao) { }
 
   /**
    * Retorna dashboard apropriado baseado no tipo de usuário
@@ -17,8 +17,8 @@ export class DashboardService {
       case 'ALUNO':
         return this.getDashboardAluno(usuario.uuid);
 
-      case 'PROFESSOR':
-        return this.getDashboardProfessor(usuario.uuid);
+      case 'DOCENTE':
+        return this.getDashboardDocente(usuario.uuid);
 
       case 'ADMIN':
         return this.getDashboardAdmin();
@@ -45,17 +45,17 @@ export class DashboardService {
   }
 
   /**
-   * Dashboard específico para professores
+   * Dashboard específico para docentes
    */
-  private async getDashboardProfessor(usuarioUuid: string): Promise<any> {
-    const dashboard = await this.dashboardDao.getDashboardProfessor(usuarioUuid);
+  private async getDashboardDocente(usuarioUuid: string): Promise<any> {
+    const dashboard = await this.dashboardDao.getDashboardDocente(usuarioUuid);
 
     if (!dashboard) {
-      throw new ForbiddenException('Perfil de professor não encontrado');
+      throw new ForbiddenException('Perfil de docente não encontrado');
     }
 
     return {
-      tipo: 'PROFESSOR',
+      tipo: 'DOCENTE',
       ...dashboard,
     };
   }

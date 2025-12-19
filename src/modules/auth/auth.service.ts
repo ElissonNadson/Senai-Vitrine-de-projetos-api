@@ -122,15 +122,15 @@ export class AuthService {
 
     const usuario = usuarioResult.rows[0];
 
-    // Cria registro em alunos ou professores
+    // Cria registro em alunos ou docentes
     if (googleUser.tipo === 'ALUNO') {
       await client.query(
         'INSERT INTO alunos (usuario_uuid) VALUES ($1)',
         [usuario.uuid],
       );
-    } else if (googleUser.tipo === 'PROFESSOR') {
+    } else if (googleUser.tipo === 'DOCENTE') {
       await client.query(
-        'INSERT INTO professores (usuario_uuid) VALUES ($1)',
+        'INSERT INTO docentes (usuario_uuid) VALUES ($1)',
         [usuario.uuid],
       );
     }
@@ -196,13 +196,13 @@ export class AuthService {
         if (alunoResult.rows.length > 0) {
           matricula = alunoResult.rows[0].matricula;
         }
-      } else if (usuario.tipo === 'PROFESSOR') {
-        const professorResult = await this.pool.query(
-          'SELECT matricula FROM professores WHERE usuario_uuid = $1',
+      } else if (usuario.tipo === 'DOCENTE') {
+        const docenteResult = await this.pool.query(
+          'SELECT matricula FROM docentes WHERE usuario_uuid = $1',
           [usuario.uuid],
         );
-        if (professorResult.rows.length > 0) {
-          matricula = professorResult.rows[0].matricula;
+        if (docenteResult.rows.length > 0) {
+          matricula = docenteResult.rows[0].matricula;
         }
       }
 
@@ -275,7 +275,7 @@ export class AuthService {
             'github_url', a.github_url,
             'portfolio_url', a.portfolio_url
           )
-          WHEN u.tipo = 'PROFESSOR' THEN json_build_object(
+          WHEN u.tipo = 'DOCENTE' THEN json_build_object(
             'uuid', p.usuario_uuid,
             'matricula', p.matricula,
             'departamento', d.nome,
@@ -291,7 +291,7 @@ export class AuthService {
       LEFT JOIN alunos a ON u.uuid = a.usuario_uuid AND u.tipo = 'ALUNO'
       LEFT JOIN cursos c ON a.curso_uuid = c.uuid
       LEFT JOIN turmas t ON a.turma_uuid = t.uuid
-      LEFT JOIN professores p ON u.uuid = p.usuario_uuid AND u.tipo = 'PROFESSOR'
+      LEFT JOIN docentes p ON u.uuid = p.usuario_uuid AND u.tipo = 'DOCENTE'
       LEFT JOIN departamentos d ON p.departamento_uuid = d.uuid
       WHERE u.uuid = $1 AND u.ativo = TRUE`,
       [uuid],
@@ -311,7 +311,7 @@ export class AuthService {
       avatarUrl: usuario.avatar_url,
       primeiroAcesso: usuario.primeiro_acesso,
       ...(usuario.tipo === 'ALUNO' && { aluno: usuario.perfil_especifico }),
-      ...(usuario.tipo === 'PROFESSOR' && { professor: usuario.perfil_especifico }),
+      ...(usuario.tipo === 'DOCENTE' && { docente: usuario.perfil_especifico }),
     };
   }
 

@@ -24,7 +24,7 @@ export class EtapasService {
     private readonly etapasDao: EtapasDao,
     private readonly projetosDao: ProjetosDao,
     private readonly uploadService: UploadService,
-  ) {}
+  ) { }
 
   /**
    * Cria nova etapa do projeto
@@ -44,11 +44,11 @@ export class EtapasService {
     let temPermissao = false;
 
     if (usuario.tipo === 'ALUNO') {
-        temPermissao = await this.projetosDao.verificarAutorProjeto(
-          projetoUuid,
-          usuario.uuid,
-        );
-    } else if (usuario.tipo === 'PROFESSOR') {
+      temPermissao = await this.projetosDao.verificarAutorProjeto(
+        projetoUuid,
+        usuario.uuid,
+      );
+    } else if (usuario.tipo === 'DOCENTE') {
       temPermissao = await this.projetosDao.verificarOrientadorProjeto(
         projetoUuid,
         usuario.uuid,
@@ -140,7 +140,7 @@ export class EtapasService {
         etapa.projeto_uuid,
         usuario.uuid,
       );
-    } else if (usuario.tipo === 'PROFESSOR') {
+    } else if (usuario.tipo === 'DOCENTE') {
       temPermissao = await this.projetosDao.verificarOrientadorProjeto(
         etapa.projeto_uuid,
         usuario.uuid,
@@ -231,7 +231,7 @@ export class EtapasService {
     dados: FeedbackOrientadorDto,
     usuario: any,
   ): Promise<{ mensagem: string }> {
-    if (usuario.tipo !== 'PROFESSOR' && usuario.tipo !== 'ADMIN') {
+    if (usuario.tipo !== 'DOCENTE' && usuario.tipo !== 'ADMIN') {
       throw new ForbiddenException('Apenas orientadores podem fornecer feedback');
     }
 
@@ -248,19 +248,19 @@ export class EtapasService {
     }
 
     // Verifica se é orientador do projeto
-    const professorResult = await this.pool.query(
-      'SELECT uuid FROM professores WHERE usuario_uuid = $1',
+    const docenteResult = await this.pool.query(
+      'SELECT uuid FROM docentes WHERE usuario_uuid = $1',
       [usuario.uuid],
     );
 
-    if (professorResult.rows.length === 0 && usuario.tipo !== 'ADMIN') {
-      throw new ForbiddenException('Perfil de professor não encontrado');
+    if (docenteResult.rows.length === 0 && usuario.tipo !== 'ADMIN') {
+      throw new ForbiddenException('Perfil de docente não encontrado');
     }
 
     if (usuario.tipo !== 'ADMIN') {
       const isOrientador = await this.projetosDao.verificarOrientadorProjeto(
         etapa.projeto_uuid,
-        professorResult.rows[0].uuid,
+        docenteResult.rows[0].uuid,
       );
 
       if (!isOrientador) {

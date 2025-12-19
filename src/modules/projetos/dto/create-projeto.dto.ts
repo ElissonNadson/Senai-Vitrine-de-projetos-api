@@ -119,10 +119,10 @@ export class Passo3ProjetoDto {
   autores: AutorProjetoDto[];
 
   @IsArray({ message: 'Orientadores deve ser um array' })
-  @IsUUID('4', { each: true, message: 'UUID de professor inválido' })
+  @IsUUID('4', { each: true, message: 'UUID de docente inválido' })
   @ArrayMinSize(1, { message: 'Projeto deve ter pelo menos 1 orientador' })
   @ArrayMaxSize(5, { message: 'Projeto pode ter no máximo 5 orientadores' })
-  orientadores_uuids: string[];
+  docentes_uuids: string[];
 }
 
 /**

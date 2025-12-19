@@ -3,7 +3,7 @@ import { SetMetadata } from '@nestjs/common';
 /**
  * Decorator para definir roles permitidas em uma rota
  * 
- * @param roles - Array de roles permitidas (ALUNO, PROFESSOR, ADMIN)
+ * @param roles - Array de roles permitidas (ALUNO, DOCENTE, ADMIN)
  * 
  * @example
  * @Roles('ADMIN')
@@ -11,7 +11,7 @@ import { SetMetadata } from '@nestjs/common';
  * listarUsuarios() { ... }
  * 
  * @example
- * @Roles('PROFESSOR', 'ADMIN')
+ * @Roles('DOCENTE', 'ADMIN')
  * @Post('/projetos/:id/avaliar')
  * avaliarProjeto() { ... }
  */

@@ -3,7 +3,7 @@ import { DepartamentosDao } from './departamentos.dao';
 
 @Injectable()
 export class DepartamentosService {
-  constructor(private readonly departamentosDao: DepartamentosDao) {}
+  constructor(private readonly departamentosDao: DepartamentosDao) { }
 
   /**
    * Lista todos os departamentos
@@ -14,7 +14,7 @@ export class DepartamentosService {
     // Adiciona contagem de professores e projetos para cada departamento
     const departamentosComContagem = await Promise.all(
       departamentos.map(async (departamento) => {
-        const totalProfessores = await this.departamentosDao.contarProfessoresPorDepartamento(
+        const totalDocentes = await this.departamentosDao.contarDocentesPorDepartamento(
           departamento.uuid,
         );
         const totalProjetos = await this.departamentosDao.contarProjetosPorDepartamento(
@@ -22,7 +22,7 @@ export class DepartamentosService {
         );
         return {
           ...departamento,
-          total_professores: totalProfessores,
+          total_docentes: totalDocentes,
           total_projetos: totalProjetos,
         };
       }),
@@ -41,12 +41,12 @@ export class DepartamentosService {
       throw new NotFoundException('Departamento não encontrado');
     }
 
-    const totalProfessores = await this.departamentosDao.contarProfessoresPorDepartamento(uuid);
+    const totalDocentes = await this.departamentosDao.contarDocentesPorDepartamento(uuid);
     const totalProjetos = await this.departamentosDao.contarProjetosPorDepartamento(uuid);
 
     return {
       ...departamento,
-      total_professores: totalProfessores,
+      total_docentes: totalDocentes,
       total_projetos: totalProjetos,
     };
   }

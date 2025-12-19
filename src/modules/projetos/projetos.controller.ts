@@ -117,9 +117,9 @@ export class ProjetosController {
   @Post('validar-equipe')
   @UseGuards(AuthGuard('jwt'))
   async validarEquipe(
-    @Body() dados: { alunos_uuids?: string[]; professores_uuids?: string[] },
+    @Body() dados: { alunos_uuids?: string[]; docentes_uuids?: string[] },
   ) {
-    return this.projetosService.validarEquipe(dados);
+    return this.projetosService.validarParticipantes(dados);
   }
 
   /**
@@ -200,8 +200,8 @@ export class ProjetosController {
     try {
       return await this.projetosService.buscarProjeto(uuid, usuario);
     } catch (error) {
-       console.error(`[API] Erro ao buscar projeto ${uuid}:`, error);
-       throw error;
+      console.error(`[API] Erro ao buscar projeto ${uuid}:`, error);
+      throw error;
     }
   }
 

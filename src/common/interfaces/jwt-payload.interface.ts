@@ -2,7 +2,7 @@ export interface JwtPayload {
   primeiroAcesso: boolean;
   uuid: string;
   email: string;
-  tipo: 'ALUNO' | 'PROFESSOR' | 'ADMIN';
+  tipo: 'ALUNO' | 'DOCENTE' | 'ADMIN';
   nome: string;
   googleId?: string;
   iat?: number;

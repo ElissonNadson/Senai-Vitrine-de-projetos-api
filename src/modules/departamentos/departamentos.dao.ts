@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 
 @Injectable()
 export class DepartamentosDao {
-  constructor(@Inject('PG_POOL') private readonly pool: Pool) {}
+  constructor(@Inject('PG_POOL') private readonly pool: Pool) { }
 
   /**
    * Lista todos os departamentos ativos
@@ -40,11 +40,11 @@ export class DepartamentosDao {
   }
 
   /**
-   * Conta professores por departamento
+   * Conta docentes por departamento
    */
-  async contarProfessoresPorDepartamento(departamentoUuid: string): Promise<number> {
+  async contarDocentesPorDepartamento(departamentoUuid: string): Promise<number> {
     const result = await this.pool.query(
-      'SELECT COUNT(*) as total FROM professores WHERE departamento_uuid = $1',
+      'SELECT COUNT(*) as total FROM docentes WHERE departamento_uuid = $1',
       [departamentoUuid],
     );
     return parseInt(result.rows[0].total, 10);

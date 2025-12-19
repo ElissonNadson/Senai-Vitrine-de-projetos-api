@@ -13,7 +13,7 @@ const REGEX_EMAIL_ALUNO = /^[a-zA-Z0-9._-]+@ba\.estudante\.senai\.br$/;
  * Regex para validação de email de professores/admin SENAI-BA
  * Domínios permitidos: @ba.senai.br e @ba.docente.senai.br
  */
-const REGEX_EMAIL_PROFESSOR = /^[a-zA-Z0-9._-]+@ba\.senai\.br$/;
+const REGEX_EMAIL_DOCENTE_LEGADO = /^[a-zA-Z0-9._-]+@ba\.senai\.br$/;
 const REGEX_EMAIL_DOCENTE = /^[a-zA-Z0-9._-]+@ba\.docente\.senai\.br$/;
 
 /**
@@ -53,7 +53,7 @@ const DOMINIOS_BLOQUEADOS = [
  */
 export enum TipoUsuario {
   ALUNO = 'ALUNO',
-  PROFESSOR = 'PROFESSOR',
+  DOCENTE = 'DOCENTE',
   INVALIDO = 'INVALIDO',
 }
 
@@ -81,20 +81,20 @@ export function validarEmailAluno(email: string): boolean {
 }
 
 /**
- * Valida se o email é de um professor/admin SENAI-BA
+ * Valida se o email é de um docente/admin SENAI-BA
  * 
  * @param email - Email a ser validado
- * @returns true se for email de professor/admin válido
+ * @returns true se for email de docente/admin válido
  * 
  * @example
- * validarEmailProfessor('carlos.santos@ba.senai.br')
+ * validarEmailDocente('carlos.santos@ba.senai.br')
  * // Retorna: true
  * 
  * @example
- * validarEmailProfessor('carlos@gmail.com')
+ * validarEmailDocente('carlos@gmail.com')
  * // Retorna: false
  */
-export function validarEmailProfessor(email: string): boolean {
+export function validarEmailDocente(email: string): boolean {
   if (!email || typeof email !== 'string') {
     return false;
   }
@@ -105,7 +105,7 @@ export function validarEmailProfessor(email: string): boolean {
     return true;
   }
 
-  return REGEX_EMAIL_PROFESSOR.test(emailLowerCase) || REGEX_EMAIL_DOCENTE.test(emailLowerCase);
+  return REGEX_EMAIL_DOCENTE_LEGADO.test(emailLowerCase) || REGEX_EMAIL_DOCENTE.test(emailLowerCase);
 }
 
 /**
@@ -138,15 +138,15 @@ export function verificarDominioBloqueado(email: string): boolean {
  * Detecta o tipo de usuário baseado no domínio do email
  * 
  * @param email - Email a ser analisado
- * @returns Tipo do usuário (ALUNO, PROFESSOR ou INVALIDO)
+ * @returns Tipo do usuário (ALUNO, DOCENTE ou INVALIDO)
  * 
  * @example
  * detectarTipoUsuario('aluno@ba.estudante.senai.br')
  * // Retorna: TipoUsuario.ALUNO
  * 
  * @example
- * detectarTipoUsuario('professor@ba.senai.br')
- * // Retorna: TipoUsuario.PROFESSOR
+ * detectarTipoUsuario('docente@ba.senai.br')
+ * // Retorna: TipoUsuario.DOCENTE
  * 
  * @example
  * detectarTipoUsuario('usuario@gmail.com')
@@ -161,25 +161,25 @@ export function detectarTipoUsuario(email: string): TipoUsuario {
     return TipoUsuario.ALUNO;
   }
 
-  if (validarEmailProfessor(email)) {
-    return TipoUsuario.PROFESSOR;
+  if (validarEmailDocente(email)) {
+    return TipoUsuario.DOCENTE;
   }
 
   return TipoUsuario.INVALIDO;
 }
 
 /**
- * Valida email SENAI-BA (aluno ou professor)
+ * Valida email SENAI-BA (aluno ou docente)
  * 
  * @param email - Email a ser validado
- * @returns true se for email SENAI-BA válido (aluno ou professor)
+ * @returns true se for email SENAI-BA válido (aluno ou docente)
  * 
  * @example
  * validarEmailSenai('aluno@ba.estudante.senai.br')
  * // Retorna: true
  * 
  * @example
- * validarEmailSenai('professor@ba.senai.br')
+ * validarEmailSenai('docente@ba.senai.br')
  * // Retorna: true
  * 
  * @example
@@ -187,7 +187,7 @@ export function detectarTipoUsuario(email: string): TipoUsuario {
  * // Retorna: false
  */
 export function validarEmailSenai(email: string): boolean {
-  return validarEmailAluno(email) || validarEmailProfessor(email);
+  return validarEmailAluno(email) || validarEmailDocente(email);
 }
 
 /**

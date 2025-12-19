@@ -73,7 +73,7 @@ export class NotificacoesDao {
     const db = client || this.pool;
 
     await db.query(
-      'UPDATE notificacoes SET lida = TRUE, lida_em = CURRENT_TIMESTAMP WHERE uuid = $1',
+      'UPDATE notificacoes SET lida = TRUE WHERE uuid = $1',
       [notificacaoUuid],
     );
   }
@@ -88,7 +88,7 @@ export class NotificacoesDao {
     const db = client || this.pool;
 
     const result = await db.query(
-      'UPDATE notificacoes SET lida = TRUE, lida_em = CURRENT_TIMESTAMP WHERE usuario_uuid = $1 AND lida = FALSE',
+      'UPDATE notificacoes SET lida = TRUE WHERE usuario_uuid = $1 AND lida = FALSE',
       [usuarioUuid],
     );
 

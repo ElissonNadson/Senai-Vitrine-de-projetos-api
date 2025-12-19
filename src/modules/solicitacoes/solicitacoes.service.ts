@@ -9,7 +9,7 @@ export class SolicitacoesService {
     @Inject('PG_POOL') private readonly pool: Pool,
     private readonly solicitacoesDao: SolicitacoesDao,
     private readonly notificacoesService: NotificacoesService,
-  ) {}
+  ) { }
 
   async criarSolicitacaoDesativacao(
     projetoUuid: string,
@@ -59,7 +59,7 @@ export class SolicitacoesService {
     if (!solicitacao) throw new NotFoundException('Solicitação não encontrada');
 
     const orientadorResult = await this.pool.query(
-      'SELECT 1 FROM projetos_professores WHERE projeto_uuid = $1 AND usuario_uuid = $2',
+      'SELECT 1 FROM projetos_docentes WHERE projeto_uuid = $1 AND usuario_uuid = $2',
       [solicitacao.projeto_uuid, usuario.uuid],
     );
     const isAdmin = usuario.tipo === 'ADMIN';

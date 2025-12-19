@@ -88,15 +88,15 @@ Content-Type: application/json
 }
 ```
 
-**Professor**
+**Docente**
 ```http
-POST /perfil/completar/professor
+POST /perfil/completar/docente
 Authorization: Bearer <token>
 Content-Type: application/json
 
 {
   "telefone": "(71) 99999-9999",
-  "bio": "Professor de desenvolvimento web",
+  "bio": "Docente de desenvolvimento web",
   "departamento_uuid": "770e8400-e29b-41d4-a716-446655440000"
 }
 ```
@@ -589,7 +589,7 @@ Também é emitido um cookie `token` (HTTP-only). A autenticação suporta tanto
 
 **Emails permitidos:**
 - Alunos: `@ba.estudante.senai.br`
-- Professores: `@ba.senai.br`
+- Docentes: `@ba.senai.br`
 
 **Emails bloqueados:**
 - Gmail, Hotmail, Outlook, Yahoo

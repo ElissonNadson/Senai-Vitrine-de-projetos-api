@@ -36,9 +36,9 @@ export class ProjetosService {
     dados: Passo1ProjetoDto,
     usuario: JwtPayload,
   ): Promise<{ uuid: string; mensagem: string }> {
-    // Valida que usuário é aluno ou professor
-    if (usuario.tipo !== 'ALUNO' && usuario.tipo !== 'PROFESSOR') {
-      throw new ForbiddenException('Apenas alunos e professores podem criar projetos');
+    // Valida que usuário é aluno ou docente
+    if (usuario.tipo !== 'ALUNO' && usuario.tipo !== 'DOCENTE') {
+      throw new ForbiddenException('Apenas alunos e docentes podem criar projetos');
     }
 
     // Verifica se título já existe
@@ -57,7 +57,7 @@ export class ProjetosService {
     try {
       await client.query('BEGIN');
 
-      // Se for aluno, ele é o líder. Se for professor, líder é NULL inicialmente.
+      // Se for aluno, ele é o líder. Se for docente, líder é NULL inicialmente.
       const liderUuid = usuario.tipo === 'ALUNO' ? usuario.uuid : null;
 
       // Cria rascunho
@@ -76,7 +76,7 @@ export class ProjetosService {
           client,
         );
       } else {
-        // Professor entra como Orientador
+        // Docente entra como Orientador
         await this.projetosDao.adicionarOrientadores(
           projetoUuid,
           [usuario.uuid],
@@ -254,12 +254,12 @@ export class ProjetosService {
       );
     }
 
-    // Valida se todos os professores existem
-    const validacaoProfessores = await this.projetosDao.validarProfessores(dados.orientadores_uuids);
+    // Valida se todos os docentes existem
+    const validacaoDocentes = await this.projetosDao.validarDocentes(dados.docentes_uuids);
 
-    if (validacaoProfessores.invalidos.length > 0) {
+    if (validacaoDocentes.invalidos.length > 0) {
       throw new BadRequestException(
-        `Os seguintes professores não foram encontrados: ${validacaoProfessores.invalidos.join(', ')}`
+        `Os seguintes docentes não foram encontrados: ${validacaoDocentes.invalidos.join(', ')}`
       );
     }
 
@@ -297,7 +297,7 @@ export class ProjetosService {
       // Adiciona orientadores
       await this.projetosDao.adicionarOrientadores(
         projetoUuid,
-        dados.orientadores_uuids,
+        dados.docentes_uuids,
         client,
       );
 
@@ -313,7 +313,7 @@ export class ProjetosService {
         },
         {
           autores: dados.autores,
-          orientadores: dados.orientadores_uuids,
+          orientadores: dados.docentes_uuids,
         },
         usuario.ip,
         usuario.userAgent,
@@ -335,7 +335,7 @@ export class ProjetosService {
         );
       }
       const antigosOrientadoresUuids = orientadoresAnteriores.map(o => String(o.usuario_uuid));
-      const novosOrientadoresUuids = (dados.orientadores_uuids || []).map(String);
+      const novosOrientadoresUuids = (dados.docentes_uuids || []).map(String);
       const orientadoresDiff = diffLista(antigosOrientadoresUuids, novosOrientadoresUuids);
       for (const uuid of orientadoresDiff.adicionados) {
         await this.notificacoesService.criarNotificacao(
@@ -427,7 +427,7 @@ export class ProjetosService {
               if (arquivo) {
                 // Validar arquivo
                 await validarArquivoCompleto(arquivo, 'ANEXO_DOCUMENTO');
-                
+
                 // Salvar arquivo no disco
                 const caminhoRelativo = await salvarArquivoLocal(
                   arquivo,
@@ -632,9 +632,9 @@ export class ProjetosService {
       let temPermissao = usuario.tipo === 'ADMIN';
 
       if (!temPermissao && usuario.tipo === 'ALUNO') {
-        temPermissao = await this.projetosDao.verificarAutorProjeto(uuid,usuario.uuid);
-      } else if (!temPermissao && usuario.tipo === 'PROFESSOR') {
-        temPermissao = await this.projetosDao.verificarOrientadorProjeto(uuid,usuario.uuid);
+        temPermissao = await this.projetosDao.verificarAutorProjeto(uuid, usuario.uuid);
+      } else if (!temPermissao && usuario.tipo === 'DOCENTE') {
+        temPermissao = await this.projetosDao.verificarOrientadorProjeto(uuid, usuario.uuid);
       }
 
       if (!temPermissao) {
@@ -670,13 +670,13 @@ export class ProjetosService {
     if (projeto.anexos_visibilidade === 'Privado') {
       // Verifica se o usuário tem permissão para ver os anexos
       let temPermissaoAnexos = false;
-      
+
       if (usuario) {
         if (usuario.tipo === 'ADMIN') {
           temPermissaoAnexos = true;
         } else if (usuario.tipo === 'ALUNO') {
           temPermissaoAnexos = await this.projetosDao.verificarAutorProjeto(uuid, usuario.uuid);
-        } else if (usuario.tipo === 'PROFESSOR') {
+        } else if (usuario.tipo === 'DOCENTE') {
           temPermissaoAnexos = await this.projetosDao.verificarOrientadorProjeto(uuid, usuario.uuid);
         }
       }
@@ -803,7 +803,7 @@ export class ProjetosService {
         usuario.userAgent,
         client,
       );
-      
+
       const labels = {
         titulo: 'Título',
         descricao: 'Descrição',
@@ -852,9 +852,10 @@ export class ProjetosService {
       throw new NotFoundException('Projeto não encontrado');
     }
 
-    if (projeto.status === 'PUBLICADO') {
-      throw new ForbiddenException('Não é possível excluir um projeto publicado. Apenas rascunhos podem ser excluídos.');
-    }
+    // Permite arquivar mesmo se publicado (solicitação do usuário)
+    // if (projeto.status === 'PUBLICADO') {
+    //   throw new ForbiddenException('Não é possível excluir um projeto publicado. Apenas rascunhos podem ser excluídos.');
+    // }
 
     // Apenas admin ou líder pode deletar
     let temPermissao = usuario.tipo === 'ADMIN';
@@ -897,15 +898,15 @@ export class ProjetosService {
   }
 
   /**
-   * Valida se alunos e professores existem no banco
+   * Valida se alunos e docentes existem no banco
    */
-  async validarEquipe(dados: {
+  async validarParticipantes(dados: {
     alunos_uuids?: string[];
-    professores_uuids?: string[];
+    docentes_uuids?: string[];
   }): Promise<any> {
     const resultado: any = {
       alunos: { validos: [], invalidos: [], dados: [] },
-      professores: { validos: [], invalidos: [], dados: [] },
+      docentes: { validos: [], invalidos: [], dados: [] },
     };
 
     // Valida alunos
@@ -922,18 +923,18 @@ export class ProjetosService {
       }
     }
 
-    // Valida professores
-    if (dados.professores_uuids && dados.professores_uuids.length > 0) {
-      const validacaoProfessores = await this.projetosDao.validarProfessores(
-        dados.professores_uuids,
+    // Valida docentes
+    if (dados.docentes_uuids && dados.docentes_uuids.length > 0) {
+      const validacaoDocentes = await this.projetosDao.validarDocentes(
+        dados.docentes_uuids,
       );
-      resultado.professores.validos = validacaoProfessores.validos;
-      resultado.professores.invalidos = validacaoProfessores.invalidos;
+      resultado.docentes.validos = validacaoDocentes.validos;
+      resultado.docentes.invalidos = validacaoDocentes.invalidos;
 
-      // Busca informações completas dos professores válidos
-      if (validacaoProfessores.validos.length > 0) {
-        resultado.professores.dados = await this.projetosDao.buscarProfessoresParaValidacao(
-          validacaoProfessores.validos,
+      // Busca informações completas dos docentes válidos
+      if (validacaoDocentes.validos.length > 0) {
+        resultado.docentes.dados = await this.projetosDao.buscarDocentesParaValidacao(
+          validacaoDocentes.validos,
         );
       }
     }
@@ -957,23 +958,26 @@ export class ProjetosService {
   /**
    * Resolve emails para UUIDs de alunos/professores
    */
+  /**
+   * Resolve emails para UUIDs de alunos/docentes
+   */
   async resolverUsuariosPorEmail(emails: string[]): Promise<{
     alunos: { email: string; usuario_uuid: string; nome: string }[];
-    professores: { email: string; usuario_uuid: string; nome: string }[];
+    docentes: { email: string; usuario_uuid: string; nome: string }[];
     invalidos: string[];
   }> {
     if (!emails || emails.length === 0) {
       throw new BadRequestException('Informe pelo menos um email');
     }
 
-    const { alunos, professores } = await this.projetosDao.resolverUsuariosPorEmail(emails);
+    const { alunos, docentes } = await this.projetosDao.resolverUsuariosPorEmail(emails);
 
-    const encontrados = new Set<string>([...alunos, ...professores].map(u => u.email.toLowerCase()));
+    const encontrados = new Set<string>([...alunos, ...docentes].map(u => u.email.toLowerCase()));
     const invalidos = emails
       .map(e => e.toLowerCase())
       .filter(email => !encontrados.has(email));
 
-    return { alunos, professores, invalidos };
+    return { alunos, docentes, invalidos };
   }
 
   /**
@@ -1017,7 +1021,7 @@ export class ProjetosService {
     const regras = {
       ALUNO: () =>
         this.projetosDao.verificarAutorProjeto(projetoUuid, usuario.uuid),
-      PROFESSOR: () =>
+      DOCENTE: () =>
         this.projetosDao.verificarOrientadorProjeto(projetoUuid, usuario.uuid),
     };
 

@@ -14,7 +14,7 @@ import { Inject } from '@nestjs/common';
  */
 @Injectable()
 export class ProjetoOwnerGuard implements CanActivate {
-  constructor(@Inject('PG_POOL') private pool: Pool) {}
+  constructor(@Inject('PG_POOL') private pool: Pool) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -66,10 +66,10 @@ export class ProjetoOwnerGuard implements CanActivate {
     }
 
     // Verifica se é orientador do projeto
-    if (user.tipo === 'PROFESSOR') {
+    if (user.tipo === 'DOCENTE') {
       const orientadorQuery = await this.pool.query(
-        `SELECT pp.uuid FROM projetos_professores pp
-         INNER JOIN professores p ON pp.professor_uuid = p.uuid
+        `SELECT pp.uuid FROM projetos_docentes pp
+         INNER JOIN docentes p ON pp.usuario_uuid = p.usuario_uuid
          WHERE pp.projeto_uuid = $1 AND p.usuario_uuid = $2`,
         [projetoUuid, user.uuid],
       );

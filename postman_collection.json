@@ -253,6 +253,82 @@
       ]
     },
     {
+      "name": "Projetos Arquivados",
+      "item": [
+        {
+          "name": "POST /projetos-arquivados/solicitar",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { 
+              "mode": "raw", 
+              "raw": "{\n  \"projeto_uuid\": \"<projeto_uuid>\",\n  \"justificativa\": \"Justificativa para arquivar o projeto com no mínimo 20 caracteres...\"\n}", 
+              "options": { "raw": { "language": "json" } } 
+            },
+            "url": { "raw": "{{baseUrl}}/projetos-arquivados/solicitar", "host": ["{{baseUrl}}"], "path": ["projetos-arquivados","solicitar"] }
+          }
+        },
+        {
+          "name": "POST /projetos-arquivados/aprovar",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { 
+              "mode": "raw", 
+              "raw": "{\n  \"solicitacao_uuid\": \"<solicitacao_uuid>\"\n}", 
+              "options": { "raw": { "language": "json" } } 
+            },
+            "url": { "raw": "{{baseUrl}}/projetos-arquivados/aprovar", "host": ["{{baseUrl}}"], "path": ["projetos-arquivados","aprovar"] }
+          }
+        },
+        {
+          "name": "POST /projetos-arquivados/negar",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { 
+              "mode": "raw", 
+              "raw": "{\n  \"solicitacao_uuid\": \"<solicitacao_uuid>\",\n  \"justificativa_negacao\": \"Justificativa da negação com no mínimo 20 caracteres...\"\n}", 
+              "options": { "raw": { "language": "json" } } 
+            },
+            "url": { "raw": "{{baseUrl}}/projetos-arquivados/negar", "host": ["{{baseUrl}}"], "path": ["projetos-arquivados","negar"] }
+          }
+        },
+        { 
+          "name": "GET /projetos-arquivados/pendentes", 
+          "request": { 
+            "method": "GET", 
+            "header": [], 
+            "url": { "raw": "{{baseUrl}}/projetos-arquivados/pendentes", "host": ["{{baseUrl}}"], "path": ["projetos-arquivados","pendentes"] } 
+          } 
+        },
+        { 
+          "name": "GET /projetos-arquivados/minhas", 
+          "request": { 
+            "method": "GET", 
+            "header": [], 
+            "url": { "raw": "{{baseUrl}}/projetos-arquivados/minhas", "host": ["{{baseUrl}}"], "path": ["projetos-arquivados","minhas"] } 
+          } 
+        },
+        { 
+          "name": "GET /projetos-arquivados/:uuid", 
+          "request": { 
+            "method": "GET", 
+            "header": [], 
+            "url": { "raw": "{{baseUrl}}/projetos-arquivados/:uuid", "host": ["{{baseUrl}}"], "path": ["projetos-arquivados",":uuid"] } 
+          } 
+        },
+        { 
+          "name": "GET /projetos-arquivados/projeto/:projetoUuid/historico", 
+          "request": { 
+            "method": "GET", 
+            "header": [], 
+            "url": { "raw": "{{baseUrl}}/projetos-arquivados/projeto/:projetoUuid/historico", "host": ["{{baseUrl}}"], "path": ["projetos-arquivados","projeto",":projetoUuid","historico"] } 
+          } 
+        }
+      ]
+    },
+    {
       "name": "Cursos e Turmas",
       "item": [
         { "name": "GET /cursos", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/cursos", "host": ["{{baseUrl}}"], "path": ["cursos"] } } },

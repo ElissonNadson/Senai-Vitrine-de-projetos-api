@@ -8,7 +8,7 @@ import {
 import { PerfilDao } from './perfil.dao';
 import {
   CompletarCadastroAlunoDto,
-  CompletarCadastroProfessorDto,
+  CompletarCadastroDocenteDto,
   AtualizarPerfilDto,
 } from './dto/perfil.dto';
 import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
@@ -80,14 +80,14 @@ export class PerfilService {
   }
 
   /**
-   * Completa cadastro de professor
+   * Completa cadastro de docente
    */
-  async completarCadastroProfessor(
-    dto: CompletarCadastroProfessorDto,
+  async completarCadastroDocente(
+    dto: CompletarCadastroDocenteDto,
     user: JwtPayload,
   ): Promise<any> {
-    if (user.tipo !== 'PROFESSOR' && user.tipo !== 'ADMIN') {
-      throw new BadRequestException('Usuário não é um professor');
+    if (user.tipo !== 'DOCENTE' && user.tipo !== 'ADMIN') {
+      throw new BadRequestException('Usuário não é um docente');
     }
 
     const client = await this.perfilDao.getClient();
@@ -100,7 +100,7 @@ export class PerfilService {
         const matriculaExiste = await this.perfilDao.verificarMatriculaExistente(
           client,
           dto.matricula,
-          'PROFESSOR',
+          'DOCENTE',
           user.uuid,
         );
 
@@ -109,8 +109,8 @@ export class PerfilService {
         }
       }
 
-      // Atualiza dados do professor
-      const professorAtualizado = await this.perfilDao.atualizarProfessor(
+      // Atualiza dados do docente
+      const docenteAtualizado = await this.perfilDao.atualizarDocente(
         client,
         user.uuid,
         dto,
@@ -123,7 +123,7 @@ export class PerfilService {
 
       return {
         mensagem: 'Cadastro completado com sucesso',
-        perfil: professorAtualizado,
+        perfil: docenteAtualizado,
       };
     } catch (error) {
       await client.query('ROLLBACK');
@@ -161,8 +161,8 @@ export class PerfilService {
           user.uuid,
           dto,
         );
-      } else if (user.tipo === 'PROFESSOR' || user.tipo === 'ADMIN') {
-        perfilAtualizado = await this.perfilDao.atualizarProfessor(
+      } else if (user.tipo === 'DOCENTE' || user.tipo === 'ADMIN') {
+        perfilAtualizado = await this.perfilDao.atualizarDocente(
           client,
           user.uuid,
           dto,
@@ -201,8 +201,8 @@ export class PerfilService {
 
       if (user.tipo === 'ALUNO') {
         perfil = await this.perfilDao.buscarAluno(client, user.uuid);
-      } else if (user.tipo === 'PROFESSOR' || user.tipo === 'ADMIN') {
-        perfil = await this.perfilDao.buscarProfessor(client, user.uuid);
+      } else if (user.tipo === 'DOCENTE' || user.tipo === 'ADMIN') {
+        perfil = await this.perfilDao.buscarDocente(client, user.uuid);
       } else {
         throw new BadRequestException('Tipo de usuário inválido');
       }
@@ -223,7 +223,7 @@ export class PerfilService {
   /**
    * Busca usuários por nome ou email
    */
-  async buscarUsuarios(termo: string, tipo?: 'ALUNO' | 'PROFESSOR'): Promise<any[]> {
+  async buscarUsuarios(termo: string, tipo?: 'ALUNO' | 'DOCENTE'): Promise<any[]> {
     if (!termo || termo.length < 3) {
       return [];
     }

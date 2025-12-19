@@ -13,7 +13,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { PerfilService } from './perfil.service';
 import {
   CompletarCadastroAlunoDto,
-  CompletarCadastroProfessorDto,
+  CompletarCadastroDocenteDto,
   AtualizarPerfilDto,
 } from './dto/perfil.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -38,16 +38,16 @@ export class PerfilController {
   }
 
   /**
-   * POST /perfil/completar/professor
-   * Completa cadastro de professor
+   * POST /perfil/completar/docente
+   * Completa cadastro de docente
    */
-  @Post('completar/professor')
+  @Post('completar/docente')
   @HttpCode(HttpStatus.OK)
-  async completarCadastroProfessor(
-    @Body() dto: CompletarCadastroProfessorDto,
+  async completarCadastroDocente(
+    @Body() dto: CompletarCadastroDocenteDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.perfilService.completarCadastroProfessor(dto, user);
+    return this.perfilService.completarCadastroDocente(dto, user);
   }
 
   /**
@@ -79,7 +79,7 @@ export class PerfilController {
   @Get('pesquisar')
   async pesquisarUsuarios(
     @Query('q') term: string,
-    @Query('tipo') tipo?: 'ALUNO' | 'PROFESSOR',
+    @Query('tipo') tipo?: 'ALUNO' | 'DOCENTE',
   ) {
     return this.perfilService.buscarUsuarios(term, tipo);
   }

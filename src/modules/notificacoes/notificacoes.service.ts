@@ -102,8 +102,8 @@ export class NotificacoesService {
   ): Promise<void> {
     const orientadoresResult = await this.pool.query(
       `SELECT p.usuario_uuid 
-       FROM projetos_professores pp
-       INNER JOIN professores p ON pp.usuario_uuid = p.usuario_uuid
+       FROM projetos_docentes pp
+       INNER JOIN docentes p ON pp.usuario_uuid = p.usuario_uuid
        WHERE pp.projeto_uuid = $1`,
       [projetoUuid],
     );

@@ -13,9 +13,8 @@ import {
  */
 export class CompletarCadastroAlunoDto {
   @IsString({ message: 'Matrícula deve ser uma string' })
-  @MinLength(5, { message: 'Matrícula deve ter no mínimo 5 caracteres' })
-  @MaxLength(20, { message: 'Matrícula deve ter no máximo 20 caracteres' })
-  matricula: string;
+  @IsOptional()
+  matricula?: string;
 
   @IsUUID('4', { message: 'UUID do curso inválido' })
   @IsOptional()
@@ -51,9 +50,9 @@ export class CompletarCadastroAlunoDto {
 }
 
 /**
- * DTO para completar cadastro de professor
+ * DTO para completar cadastro de docente
  */
-export class CompletarCadastroProfessorDto {
+export class CompletarCadastroDocenteDto {
   @IsString({ message: 'Matrícula deve ser uma string' })
   @MinLength(5, { message: 'Matrícula deve ter no mínimo 5 caracteres' })
   @MaxLength(20, { message: 'Matrícula deve ter no máximo 20 caracteres' })

@@ -20,7 +20,7 @@ export class ProjetosArquivadosService {
   constructor(
     @Inject('PG_POOL') private readonly pool: Pool,
     private readonly dao: ProjetosArquivadosDao,
-  ) {}
+  ) { }
 
   /**
    * Aluno solicita arquivamento do projeto
@@ -109,8 +109,8 @@ export class ProjetosArquivadosService {
     dados: AprovarArquivamentoDto,
     usuario: JwtPayload,
   ): Promise<any> {
-    // Valida que usuário é professor/orientador
-    if (usuario.tipo !== 'PROFESSOR') {
+    // Valida que usuário é docente/orientador
+    if (usuario.tipo !== 'DOCENTE') {
       throw new ForbiddenException('Apenas orientadores podem aprovar solicitações');
     }
 
@@ -171,8 +171,8 @@ export class ProjetosArquivadosService {
     dados: NegarArquivamentoDto,
     usuario: JwtPayload,
   ): Promise<any> {
-    // Valida que usuário é professor/orientador
-    if (usuario.tipo !== 'PROFESSOR') {
+    // Valida que usuário é docente/orientador
+    if (usuario.tipo !== 'DOCENTE') {
       throw new ForbiddenException('Apenas orientadores podem negar solicitações');
     }
 
@@ -235,7 +235,7 @@ export class ProjetosArquivadosService {
    * Lista solicitações pendentes do orientador
    */
   async listarSolicitacoesPendentes(usuario: JwtPayload): Promise<any> {
-    if (usuario.tipo !== 'PROFESSOR') {
+    if (usuario.tipo !== 'DOCENTE') {
       throw new ForbiddenException('Apenas orientadores podem acessar este recurso');
     }
 
@@ -326,7 +326,7 @@ export class ProjetosArquivadosService {
   ): Promise<any> {
     // Verifica se usuário tem acesso ao projeto
     const temAcesso =
-      usuario.tipo === 'PROFESSOR' ||
+      usuario.tipo === 'DOCENTE' ||
       (usuario.tipo === 'ALUNO' &&
         (await this.dao.verificarAlunoNoProjeto(projetoUuid, usuario.uuid)));
 
