@@ -115,7 +115,7 @@ curl -X POST http://localhost:3000/projetos/$PROJETO_UUID/passo3 \
         "papel": "AUTOR"
       }
     ],
-    "orientadores_uuids": ["uuid-do-professor-1"]
+    "docentes_uuids": ["uuid-do-professor-1"]
   }'
 ```
 

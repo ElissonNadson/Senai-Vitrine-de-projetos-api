@@ -230,7 +230,7 @@ Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-  "orientadores_uuids": [
+  "docentes_uuids": [
     "333e4567-e89b-12d3-a456-426614174000"
   ],
   "tecnologias_uuids": [

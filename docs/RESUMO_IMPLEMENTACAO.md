@@ -34,7 +34,7 @@ Implementamos **100%** dos campos que o frontend coleta durante a criação de p
 📄 `src/modules/projetos/dto/create-projeto.dto.ts`
 - ✅ **Passo1ProjetoDto**: titulo, descricao, categoria
 - ✅ **Passo2ProjetoDto**: curso, turma, modalidade, itinerario, senai_lab, saga_senai
-- ✅ **Passo3ProjetoDto**: autores[], orientadores_uuids[]
+- ✅ **Passo3ProjetoDto**: autores[], docentes_uuids[]
 - ✅ **Passo4ProjetoDto**: ideacao, modelagem, prototipagem, implementacao
 - ✅ **Passo5ProjetoDto**: has_repositorio, tipo_repositorio, visibilidades, termos
 - ✅ **AnexoFaseDto**: Estrutura de anexos das fases
@@ -102,7 +102,7 @@ Implementamos **100%** dos campos que o frontend coleta durante a criação de p
 | Campo | Status | Descrição |
 |-------|--------|-----------|
 | `autores[]` | ✅ Implementado | Array de alunos |
-| `orientadores_uuids[]` | ✅ Implementado | Array de professores |
+| `docentes_uuids[]` | ✅ Implementado | Array de professores |
 
 ### **📂 Passo 4: Fases do Projeto**
 | Campo | Status | Descrição |
