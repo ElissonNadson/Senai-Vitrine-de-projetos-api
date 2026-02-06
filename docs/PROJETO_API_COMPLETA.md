@@ -95,7 +95,7 @@ Adiciona autores e orientadores ao projeto.
       "papel": string        // "LIDER" ou "AUTOR"
     }
   ],
-  "orientadores_uuids": string[]  // Array de UUIDs de professores
+  "docentes_uuids": string[]  // Array de UUIDs de professores
 }
 ```
 
@@ -395,7 +395,7 @@ curl -X POST http://localhost:3000/projetos/UUID_DO_PROJETO/passo3 \
         "papel": "AUTOR"
       }
     ],
-    "orientadores_uuids": ["uuid-do-professor-1"]
+    "docentes_uuids": ["uuid-do-professor-1"]
   }'
 ```
 

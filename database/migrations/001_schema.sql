@@ -328,10 +328,10 @@ COMMENT ON TABLE public.notificacoes IS 'Notificações síncronas para usuário
 
 
 --
--- Name: professores; Type: TABLE; Schema: public; Owner: api_user
+-- Name: docentes; Type: TABLE; Schema: public; Owner: api_user
 --
 
-CREATE TABLE public.professores (
+CREATE TABLE public.docentes (
     usuario_uuid uuid NOT NULL,
     matricula character varying(20),
     departamento_uuid uuid,
@@ -346,21 +346,21 @@ CREATE TABLE public.professores (
 );
 
 
-ALTER TABLE public.professores OWNER TO api_user;
+ALTER TABLE public.docentes OWNER TO api_user;
 
 --
--- Name: TABLE professores; Type: COMMENT; Schema: public; Owner: api_user
+-- Name: TABLE docentes; Type: COMMENT; Schema: public; Owner: api_user
 --
 
-COMMENT ON TABLE public.professores IS 'Dados específicos de professores';
+COMMENT ON TABLE public.docentes IS 'Dados específicos de docentes';
 
 
 --
--- Name: professores_id_seq; Type: SEQUENCE; Schema: public; Owner: api_user
+-- Name: docentes_id_seq; Type: SEQUENCE; Schema: public; Owner: api_user
 --
 
-ALTER TABLE public.professores ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
-    SEQUENCE NAME public.professores_id_seq
+ALTER TABLE public.docentes ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.docentes_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -699,26 +699,26 @@ COMMENT ON TABLE public.projetos_fases_anexos IS 'Anexos de cada fase (Crazy 8, 
 
 
 --
--- Name: projetos_professores; Type: TABLE; Schema: public; Owner: api_user
+-- Name: projetos_docentes; Type: TABLE; Schema: public; Owner: api_user
 --
 
-CREATE TABLE public.projetos_professores (
+CREATE TABLE public.projetos_docentes (
     uuid uuid DEFAULT gen_random_uuid() NOT NULL,
     projeto_uuid uuid NOT NULL,
     usuario_uuid uuid NOT NULL,
     papel character varying(20) DEFAULT 'ORIENTADOR'::character varying,
     adicionado_em timestamp without time zone DEFAULT now(),
-    CONSTRAINT projetos_professores_papel_check CHECK (((papel)::text = ANY ((ARRAY['ORIENTADOR'::character varying, 'COORIENTADOR'::character varying, 'AVALIADOR'::character varying])::text[])))
+    CONSTRAINT projetos_docentes_papel_check CHECK (((papel)::text = ANY ((ARRAY['ORIENTADOR'::character varying, 'COORIENTADOR'::character varying, 'AVALIADOR'::character varying])::text[])))
 );
 
 
-ALTER TABLE public.projetos_professores OWNER TO api_user;
+ALTER TABLE public.projetos_docentes OWNER TO api_user;
 
 --
--- Name: TABLE projetos_professores; Type: COMMENT; Schema: public; Owner: api_user
+-- Name: TABLE projetos_docentes; Type: COMMENT; Schema: public; Owner: api_user
 --
 
-COMMENT ON TABLE public.projetos_professores IS 'Orientadores dos projetos';
+COMMENT ON TABLE public.projetos_docentes IS 'Orientadores dos projetos';
 
 
 --
@@ -885,7 +885,7 @@ ALTER TABLE public.usuarios OWNER TO api_user;
 -- Name: TABLE usuarios; Type: COMMENT; Schema: public; Owner: api_user
 --
 
-COMMENT ON TABLE public.usuarios IS 'Usuários do sistema (alunos, professores, admin)';
+COMMENT ON TABLE public.usuarios IS 'Usuários do sistema (alunos, docentes, admin)';
 
 
 --
@@ -1035,27 +1035,27 @@ ALTER TABLE ONLY public.notificacoes
 
 
 --
--- Name: professores professores_matricula_key; Type: CONSTRAINT; Schema: public; Owner: api_user
+-- Name: docentes docentes_matricula_key; Type: CONSTRAINT; Schema: public; Owner: api_user
 --
 
-ALTER TABLE ONLY public.professores
-    ADD CONSTRAINT professores_matricula_key UNIQUE (matricula);
-
-
---
--- Name: professores professores_pkey; Type: CONSTRAINT; Schema: public; Owner: api_user
---
-
-ALTER TABLE ONLY public.professores
-    ADD CONSTRAINT professores_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.docentes
+    ADD CONSTRAINT docentes_matricula_key UNIQUE (matricula);
 
 
 --
--- Name: professores professores_usuario_uuid_key; Type: CONSTRAINT; Schema: public; Owner: api_user
+-- Name: docentes docentes_pkey; Type: CONSTRAINT; Schema: public; Owner: api_user
 --
 
-ALTER TABLE ONLY public.professores
-    ADD CONSTRAINT professores_usuario_uuid_key UNIQUE (usuario_uuid);
+ALTER TABLE ONLY public.docentes
+    ADD CONSTRAINT docentes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: docentes docentes_usuario_uuid_key; Type: CONSTRAINT; Schema: public; Owner: api_user
+--
+
+ALTER TABLE ONLY public.docentes
+    ADD CONSTRAINT docentes_usuario_uuid_key UNIQUE (usuario_uuid);
 
 
 --
@@ -1147,19 +1147,19 @@ ALTER TABLE ONLY public.projetos
 
 
 --
--- Name: projetos_professores projetos_professores_pkey; Type: CONSTRAINT; Schema: public; Owner: api_user
+-- Name: projetos_docentes projetos_docentes_pkey; Type: CONSTRAINT; Schema: public; Owner: api_user
 --
 
-ALTER TABLE ONLY public.projetos_professores
-    ADD CONSTRAINT projetos_professores_pkey PRIMARY KEY (uuid);
+ALTER TABLE ONLY public.projetos_docentes
+    ADD CONSTRAINT projetos_docentes_pkey PRIMARY KEY (uuid);
 
 
 --
--- Name: projetos_professores projetos_professores_projeto_uuid_usuario_uuid_key; Type: CONSTRAINT; Schema: public; Owner: api_user
+-- Name: projetos_docentes projetos_docentes_projeto_uuid_usuario_uuid_key; Type: CONSTRAINT; Schema: public; Owner: api_user
 --
 
-ALTER TABLE ONLY public.projetos_professores
-    ADD CONSTRAINT projetos_professores_projeto_uuid_usuario_uuid_key UNIQUE (projeto_uuid, usuario_uuid);
+ALTER TABLE ONLY public.projetos_docentes
+    ADD CONSTRAINT projetos_docentes_projeto_uuid_usuario_uuid_key UNIQUE (projeto_uuid, usuario_uuid);
 
 
 --
@@ -1406,24 +1406,24 @@ CREATE INDEX idx_notificacoes_usuario ON public.notificacoes USING btree (usuari
 
 
 --
--- Name: idx_professores_departamento; Type: INDEX; Schema: public; Owner: api_user
+-- Name: idx_docentes_departamento; Type: INDEX; Schema: public; Owner: api_user
 --
 
-CREATE INDEX idx_professores_departamento ON public.professores USING btree (departamento_uuid);
-
-
---
--- Name: idx_professores_matricula; Type: INDEX; Schema: public; Owner: api_user
---
-
-CREATE INDEX idx_professores_matricula ON public.professores USING btree (matricula);
+CREATE INDEX idx_docentes_departamento ON public.docentes USING btree (departamento_uuid);
 
 
 --
--- Name: idx_professores_usuario; Type: INDEX; Schema: public; Owner: api_user
+-- Name: idx_docentes_matricula; Type: INDEX; Schema: public; Owner: api_user
 --
 
-CREATE INDEX idx_professores_usuario ON public.professores USING btree (usuario_uuid);
+CREATE INDEX idx_docentes_matricula ON public.docentes USING btree (matricula);
+
+
+--
+-- Name: idx_docentes_usuario; Type: INDEX; Schema: public; Owner: api_user
+--
+
+CREATE INDEX idx_docentes_usuario ON public.docentes USING btree (usuario_uuid);
 
 
 --
@@ -1560,17 +1560,17 @@ CREATE INDEX idx_projetos_modalidade ON public.projetos USING btree (modalidade)
 
 
 --
--- Name: idx_projetos_professores_projeto; Type: INDEX; Schema: public; Owner: api_user
+-- Name: idx_projetos_docentes_projeto; Type: INDEX; Schema: public; Owner: api_user
 --
 
-CREATE INDEX idx_projetos_professores_projeto ON public.projetos_professores USING btree (projeto_uuid);
+CREATE INDEX idx_projetos_docentes_projeto ON public.projetos_docentes USING btree (projeto_uuid);
 
 
 --
--- Name: idx_projetos_professores_usuario; Type: INDEX; Schema: public; Owner: api_user
+-- Name: idx_projetos_docentes_usuario; Type: INDEX; Schema: public; Owner: api_user
 --
 
-CREATE INDEX idx_projetos_professores_usuario ON public.projetos_professores USING btree (usuario_uuid);
+CREATE INDEX idx_projetos_docentes_usuario ON public.projetos_docentes USING btree (usuario_uuid);
 
 
 --
@@ -1728,10 +1728,10 @@ CREATE TRIGGER trigger_noticias_updated BEFORE UPDATE ON public.noticias FOR EAC
 
 
 --
--- Name: professores trigger_professores_updated; Type: TRIGGER; Schema: public; Owner: api_user
+-- Name: docentes trigger_docentes_updated; Type: TRIGGER; Schema: public; Owner: api_user
 --
 
-CREATE TRIGGER trigger_professores_updated BEFORE UPDATE ON public.professores FOR EACH ROW EXECUTE FUNCTION public.atualizar_timestamp();
+CREATE TRIGGER trigger_docentes_updated BEFORE UPDATE ON public.docentes FOR EACH ROW EXECUTE FUNCTION public.atualizar_timestamp();
 
 
 --
@@ -1829,11 +1829,11 @@ ALTER TABLE ONLY public.notificacoes
 
 
 --
--- Name: professores professores_usuario_uuid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: api_user
+-- Name: docentes docentes_usuario_uuid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: api_user
 --
 
-ALTER TABLE ONLY public.professores
-    ADD CONSTRAINT professores_usuario_uuid_fkey FOREIGN KEY (usuario_uuid) REFERENCES public.usuarios(uuid) ON DELETE CASCADE;
+ALTER TABLE ONLY public.docentes
+    ADD CONSTRAINT docentes_usuario_uuid_fkey FOREIGN KEY (usuario_uuid) REFERENCES public.usuarios(uuid) ON DELETE CASCADE;
 
 
 --
@@ -1933,19 +1933,19 @@ ALTER TABLE ONLY public.projetos
 
 
 --
--- Name: projetos_professores projetos_professores_projeto_uuid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: api_user
+-- Name: projetos_docentes projetos_docentes_projeto_uuid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: api_user
 --
 
-ALTER TABLE ONLY public.projetos_professores
-    ADD CONSTRAINT projetos_professores_projeto_uuid_fkey FOREIGN KEY (projeto_uuid) REFERENCES public.projetos(uuid) ON DELETE CASCADE;
+ALTER TABLE ONLY public.projetos_docentes
+    ADD CONSTRAINT projetos_docentes_projeto_uuid_fkey FOREIGN KEY (projeto_uuid) REFERENCES public.projetos(uuid) ON DELETE CASCADE;
 
 
 --
--- Name: projetos_professores projetos_professores_usuario_uuid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: api_user
+-- Name: projetos_docentes projetos_docentes_usuario_uuid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: api_user
 --
 
-ALTER TABLE ONLY public.projetos_professores
-    ADD CONSTRAINT projetos_professores_usuario_uuid_fkey FOREIGN KEY (usuario_uuid) REFERENCES public.usuarios(uuid) ON DELETE CASCADE;
+ALTER TABLE ONLY public.projetos_docentes
+    ADD CONSTRAINT projetos_docentes_usuario_uuid_fkey FOREIGN KEY (usuario_uuid) REFERENCES public.usuarios(uuid) ON DELETE CASCADE;
 
 
 --

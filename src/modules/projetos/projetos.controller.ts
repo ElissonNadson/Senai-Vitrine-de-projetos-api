@@ -60,7 +60,7 @@ export class ProjetosController {
   /**
    * POST /projetos/:uuid/passo3
    * Adiciona autores e orientadores (Passo 3)
-   * Campos: autores[], orientadores_uuids[]
+   * Campos: autores[], docentes_uuids[]
    */
   @Post(':uuid/passo3')
   @UseGuards(AuthGuard('jwt'))

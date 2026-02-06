@@ -1,0 +1,26 @@
+# Dockerfile para desenvolvimento com hot-reload
+FROM node:20-alpine
+
+WORKDIR /usr/src/app
+
+# Instalar dependências de build
+RUN apk add --no-cache python3 make g++
+
+# Copiar arquivos de dependência
+COPY package*.json ./
+
+# Instalar todas as dependências
+RUN npm ci --legacy-peer-deps
+
+# Copiar código fonte
+COPY . .
+
+# Criar diretórios necessários
+RUN mkdir -p uploads/avatars uploads/banners uploads/anexos logs
+
+# Expor porta
+EXPOSE 3000
+
+# Comando para desenvolvimento com watch
+CMD ["npm", "run", "start:dev"]
+

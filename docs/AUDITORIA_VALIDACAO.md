@@ -289,7 +289,7 @@ curl -X POST http://localhost:3000/projetos/abc-123/passo3 \
       {"aluno_uuid": "uuid-1", "papel": "LIDER"},
       {"aluno_uuid": "uuid-2", "papel": "AUTOR"}
     ],
-    "orientadores_uuids": ["prof-uuid-1"]
+    "docentes_uuids": ["prof-uuid-1"]
   }'
 ```
 

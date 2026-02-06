@@ -287,7 +287,7 @@ export class ProjetosService {
         [projetoUuid],
       );
       await client.query(
-        'DELETE FROM projetos_professores WHERE projeto_uuid = $1',
+        'DELETE FROM projetos_docentes WHERE projeto_uuid = $1',
         [projetoUuid],
       );
 
