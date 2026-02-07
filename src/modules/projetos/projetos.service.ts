@@ -787,6 +787,10 @@ export class ProjetosService {
         lab_maker: projeto.senai_lab,
         participou_saga: projeto.saga_senai,
         banner_url: projeto.banner_url,
+        curso: projeto.curso,
+        turma: projeto.turma,
+        modalidade: projeto.modalidade,
+        unidade_curricular: projeto.unidade_curricular,
       };
       await this.projetosDao.atualizarProjeto(projetoUuid, dados, client);
 
@@ -873,6 +877,10 @@ export class ProjetosService {
         );
         temPermissao = liderResult.rows.length > 0;
       }
+    }
+
+    if (!temPermissao && usuario.tipo === 'DOCENTE') {
+      temPermissao = await this.projetosDao.verificarOrientadorProjeto(projetoUuid, usuario.uuid);
     }
 
     if (!temPermissao) {

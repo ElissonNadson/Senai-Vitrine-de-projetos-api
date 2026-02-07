@@ -35,26 +35,29 @@ export class Passo1ProjetoDto {
 
   @IsString()
   @IsNotEmpty({ message: 'Categoria é obrigatória' })
-  @IsIn([
-    'Aplicativo / Site',
-    'Automação de Processos',
-    'Bioprodutos',
-    'Chatbots e Automação Digital',
-    'Dashboards e Análises de Dados',
-    'Economia Circular',
-    'Educação',
-    'E-commerce e Marketplace',
-    'Eficiência Energética',
-    'Impressão 3D',
-    'Impacto Social',
-    'IoT',
-    'Manufatura Inteligente',
-    'Modelo de Negócio',
-    'Sistemas de Gestão (ERP, CRM, etc.)',
-    'Sustentabilidade e Meio Ambiente',
-    'Tecnologias Assistivas e Acessibilidade',
-    'Outro'
-  ], { message: 'Categoria inválida' })
+  @IsIn(
+    [
+      'Aplicativo / Site',
+      'Automação de Processos',
+      'Bioprodutos',
+      'Chatbots e Automação Digital',
+      'Dashboards e Análises de Dados',
+      'Economia Circular',
+      'Educação',
+      'E-commerce e Marketplace',
+      'Eficiência Energética',
+      'Impressão 3D',
+      'Impacto Social',
+      'IoT',
+      'Manufatura Inteligente',
+      'Modelo de Negócio',
+      'Sistemas de Gestão (ERP, CRM, etc.)',
+      'Sustentabilidade e Meio Ambiente',
+      'Tecnologias Assistivas e Acessibilidade',
+      'Outro',
+    ],
+    { message: 'Categoria inválida' },
+  )
   categoria: string;
 }
 
@@ -86,7 +89,9 @@ export class Passo2ProjetoDto {
 
   @IsString()
   @IsNotEmpty({ message: 'Modalidade é obrigatória' })
-  @IsIn(['Presencial', 'Semipresencial'], { message: 'Modalidade deve ser Presencial ou Semipresencial' })
+  @IsIn(['Presencial', 'Semipresencial'], {
+    message: 'Modalidade deve ser Presencial ou Semipresencial',
+  })
   modalidade: string;
 
   @IsString()
@@ -159,7 +164,9 @@ export class AnexoFaseDto {
 export class FaseProjetoDto {
   @IsString()
   @IsOptional()
-  @MaxLength(5000, { message: 'Descrição da fase deve ter no máximo 5000 caracteres' })
+  @MaxLength(5000, {
+    message: 'Descrição da fase deve ter no máximo 5000 caracteres',
+  })
   descricao?: string;
 
   @IsArray()
@@ -203,22 +210,30 @@ export class Passo5ProjetoDto {
   has_repositorio: boolean;
 
   @IsString()
-
   @IsString()
   @IsOptional()
-  @ValidateIf((o) => o.link_repositorio !== "" && o.link_repositorio !== null && o.link_repositorio !== undefined)
+  @ValidateIf(
+    (o) =>
+      o.link_repositorio !== '' &&
+      o.link_repositorio !== null &&
+      o.link_repositorio !== undefined,
+  )
   @IsUrl({}, { message: 'Link do repositório inválido' })
   @MaxLength(500, { message: 'Link do repositório muito longo' })
   link_repositorio?: string;
 
   @IsString()
   @IsOptional()
-  @IsIn(['Público', 'Privado'], { message: 'Visibilidade do código deve ser Público ou Privado' })
+  @IsIn(['Público', 'Privado'], {
+    message: 'Visibilidade do código deve ser Público ou Privado',
+  })
   codigo_visibilidade?: string;
 
   @IsString()
   @IsOptional()
-  @IsIn(['Público', 'Privado'], { message: 'Visibilidade dos anexos deve ser Público ou Privado' })
+  @IsIn(['Público', 'Privado'], {
+    message: 'Visibilidade dos anexos deve ser Público ou Privado',
+  })
   anexos_visibilidade?: string;
 
   @IsBoolean()
@@ -271,4 +286,26 @@ export class UpdateProjetoDto {
   @IsString()
   @IsOptional()
   banner_url?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(200, { message: 'Nome do curso muito longo' })
+  curso?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50, { message: 'Código da turma muito longo' })
+  turma?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(255, { message: 'Nome da unidade curricular muito longo' })
+  unidade_curricular?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['Presencial', 'Semipresencial'], {
+    message: 'Modalidade deve ser Presencial ou Semipresencial',
+  })
+  modalidade?: string;
 }
