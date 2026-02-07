@@ -407,7 +407,7 @@ CREATE TABLE public.projetos (
     banner_url text,
     fase_atual character varying(50) DEFAULT 'IDEACAO'::character varying,
     status character varying(20) DEFAULT 'RASCUNHO'::character varying,
-    lider_uuid uuid NOT NULL,
+    lider_uuid uuid,
     departamento_uuid uuid,
     visibilidade character varying(20) DEFAULT 'PUBLICO'::character varying,
     curtidas_count integer DEFAULT 0,
