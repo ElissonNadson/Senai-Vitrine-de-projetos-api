@@ -19,8 +19,8 @@ services:
     restart: unless-stopped
 
   vitrine-senai-api-dev:
-    image: vitrine-senai-api:v2
-    container_name: vitrine-senai-api
+    image: vitrine-senai-api-dev:v2
+    container_name: vitrine-senai-api-dev
     build:
       context: ./
       dockerfile: Dockerfile
