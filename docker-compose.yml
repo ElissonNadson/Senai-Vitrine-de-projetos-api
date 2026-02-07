@@ -17,6 +17,24 @@ services:
     networks:
       - vitrine-senai-network
     restart: unless-stopped
+
+  vitrine-senai-api-dev:
+    image: vitrine-senai-api:v2
+    container_name: vitrine-senai-api
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    volumes:
+      - ./logs:/usr/src/app/logs
+      - ./access:/usr/src/app/access
+      - ./uploads:/usr/src/app/uploads
+    ports:
+      - 3001:3001
+    env_file:
+      - ./.env
+    networks:
+      - vitrine-senai-network
+    restart: unless-stopped
   
   vitrine-senai-redis:
     image: redis:latest
