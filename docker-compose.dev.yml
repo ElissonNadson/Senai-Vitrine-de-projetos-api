@@ -1,0 +1,108 @@
+services:
+  # ============ PostgreSQL ============
+  vitrine-senai-db:
+    image: postgres:15-alpine
+    container_name: vitrine-senai-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: vitrine_projetos
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/migrations/001_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./database/seeds/seeds.sql:/docker-entrypoint-initdb.d/02_seeds.sql
+    networks:
+      - vitrine-senai-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d vitrine_projetos"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ============ Redis ============
+  vitrine-senai-redis:
+    image: redis:7-alpine
+    container_name: vitrine-senai-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - vitrine-senai-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============ pgAdmin ============
+  vitrine-senai-pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: vitrine-senai-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5555:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - vitrine-senai-network
+    restart: unless-stopped
+
+  # ============ API NestJS ============
+  vitrine-senai-api:
+    image: vitrine-senai-api:dev
+    container_name: vitrine-senai-api
+    build:
+      context: ./
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./src:/usr/src/app/src
+      - ./uploads:/usr/src/app/uploads
+      - ./logs:/usr/src/app/logs
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=development
+      - JWT_SECRET=desenvolvimento-secret-key-32chars-min
+      - SUPER_TOKEN=super-token-desenvolvimento
+      - DATABASE=vitrine_projetos
+      - USERNAME=postgres
+      - PASSWORD=postgres123
+      - DB_PORT=5432
+      - HOST=vitrine-senai-db
+      - REDIS_HOST=vitrine-senai-redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-placeholder-client-id.apps.googleusercontent.com}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-placeholder-client-secret}
+      - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL:-http://localhost:3000/auth/google/callback}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+    networks:
+      - vitrine-senai-network
+    depends_on:
+      vitrine-senai-db:
+        condition: service_healthy
+      vitrine-senai-redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  vitrine-senai-network:
+    name: vitrine-senai-network
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  pgadmin_data:

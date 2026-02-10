@@ -92,6 +92,7 @@ main() {
             [ -f "database/migrations/006_add_news_metrics.sql" ] && run_migration "database/migrations/006_add_news_metrics.sql"
             [ -f "database/migrations/007_add_expiration_date.sql" ] && run_migration "database/migrations/007_add_expiration_date.sql"
             [ -f "database/migrations/010_rename_professor_to_docente.sql" ] && run_migration "database/migrations/010_rename_professor_to_docente.sql"
+            [ -f "database/migrations/011_add_participou_edital_ganhou_premio.sql" ] && run_migration "database/migrations/011_add_participou_edital_ganhou_premio.sql"
             ;;
         seed|seeds)
             echo -e "${GREEN}🚀 Executando seeds...${NC}"
@@ -99,6 +100,14 @@ main() {
             ;;
         check|status)
             check_status
+            ;;
+        single)
+            if [ -z "$2" ]; then
+                echo -e "${RED}❌ Especifique o arquivo de migration!${NC}"
+                echo "Uso: $0 single database/migrations/011_add_participou_edital_ganhou_premio.sql"
+                exit 1
+            fi
+            run_migration "$2"
             ;;
         all)
             echo -e "${GREEN}🚀 Executando migrations e seeds...${NC}"
@@ -110,17 +119,20 @@ main() {
             [ -f "database/migrations/006_add_news_metrics.sql" ] && run_migration "database/migrations/006_add_news_metrics.sql"
             [ -f "database/migrations/007_add_expiration_date.sql" ] && run_migration "database/migrations/007_add_expiration_date.sql"
             [ -f "database/migrations/010_rename_professor_to_docente.sql" ] && run_migration "database/migrations/010_rename_professor_to_docente.sql"
+            [ -f "database/migrations/011_add_participou_edital_ganhou_premio.sql" ] && run_migration "database/migrations/011_add_participou_edital_ganhou_premio.sql"
             run_seeds
             check_status
             ;;
         *)
-            echo "Uso: $0 [migration|seed|all|check]"
+            echo "Uso: $0 [migration|seed|all|check|single]"
             echo ""
             echo "Comandos:"
             echo "  migration  - Executa apenas as migrations"
             echo "  seed       - Executa apenas os seeds"
             echo "  all        - Executa migrations e seeds (padrão)"
             echo "  check      - Verifica status do banco"
+            echo "  single     - Executa uma migration específica"
+            echo "               Exemplo: $0 single database/migrations/011_add_participou_edital_ganhou_premio.sql"
             exit 1
             ;;
     esac

@@ -556,7 +556,6 @@ export class ProjetosDao {
    */
   async listarMeusProjetos(usuarioUuid: string, tipoUsuario: string = 'ALUNO'): Promise<{ publicados: any[]; rascunhos: any[] }> {
     let whereClause: string;
-    let params: any[];
 
     if (tipoUsuario.toUpperCase() === 'DOCENTE') {
       // Para docente: projetos onde é orientador OU que criou
@@ -564,11 +563,9 @@ export class ProjetosDao {
         p.uuid IN (SELECT pp.projeto_uuid FROM projetos_docentes pp WHERE pp.usuario_uuid = $1)
         OR p.criado_por_uuid = $1
       ) AND p.status NOT IN ('ARQUIVADO', 'EXCLUIDO')`;
-      params = [usuarioUuid];
     } else {
-      // Para aluno, buscar por lider_uuid
-      whereClause = `WHERE p.lider_uuid = $1 AND p.status NOT IN ('ARQUIVADO', 'EXCLUIDO')`;
-      params = [usuarioUuid];
+      // Para aluno, buscar por lider_uuid ou criado_por_uuid
+      whereClause = `WHERE (p.lider_uuid = $1 OR p.criado_por_uuid = $1) AND p.status NOT IN ('ARQUIVADO', 'EXCLUIDO')`;
     }
 
     const query = `
