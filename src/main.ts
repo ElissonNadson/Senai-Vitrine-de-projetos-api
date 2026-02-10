@@ -11,14 +11,14 @@ import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+
   // Configuração de validação global
   app.useGlobalPipes(new ValidationPipe({
     whitelist: false, // Permite campos não declarados no DTO
     transform: true, // Transforma o body para a classe DTO
     forbidNonWhitelisted: false, // Não rejeita campos extras
   }));
-  
+
   app.use(cors({
     origin: [
       'http://localhost:5173',
@@ -63,7 +63,7 @@ async function bootstrap() {
 
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 1000, // Limite de 100 requisições por IP por "windowMs"
+    max: 50000, // Limite aumentado para testes
     message: 'Too many requests from this IP, please try again later.',
     standardHeaders: true, // Envia informações de rate limit nos headers `RateLimit-*`
     legacyHeaders: false, // Desativa os headers `X-RateLimit-*`

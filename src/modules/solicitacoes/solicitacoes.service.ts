@@ -41,6 +41,23 @@ export class SolicitacoesService {
         `O projeto "${projeto.titulo}" teve solicitação de desativação por ${usuario.nome || 'um usuário'}.`,
       );
 
+      // Notifica autores do projeto
+      await this.notificacoesService.notificarAutores(
+        projetoUuid,
+        'SOLICITACAO_DESATIVACAO',
+        'Solicitação de desativação',
+        `O projeto "${projeto.titulo}" teve solicitação de desativação por ${usuario.nome || 'um usuário'}.`,
+      );
+
+      // Notifica administradores
+      await this.notificacoesService.notificarAdmins(
+        'SOLICITACAO_DESATIVACAO',
+        'Solicitação de desativação',
+        `O projeto "${projeto.titulo}" teve solicitação de desativação por ${usuario.nome || 'um usuário'}.`,
+        `/projetos/${projetoUuid}`,
+        { projetoTitulo: projeto.titulo, solicitanteNome: usuario.nome || 'Usuário' },
+      );
+
       return { uuid: solicitacaoUuid, mensagem: 'Solicitação criada' };
     } catch (e) {
       await client.query('ROLLBACK');
@@ -70,12 +87,28 @@ export class SolicitacoesService {
     const status = aceitar ? 'ACEITA' : 'REJEITADA';
     await this.solicitacoesDao.decidirSolicitacao(solicitacaoUuid, status as any);
 
+    // Notifica o solicitante sobre a decisão
     await this.notificacoesService.criarNotificacao(
       solicitacao.solicitante_uuid,
       'SOLICITACAO_DECISAO',
       'Solicitação de desativação',
       `Sua solicitação de desativação do projeto "${solicitacao.projeto_titulo}" foi ${status}.`,
       `/projetos/${solicitacao.projeto_uuid}`,
+      { projetoTitulo: solicitacao.projeto_titulo, aceita: aceitar },
+    );
+
+    // Notifica autores e orientadores sobre a decisão
+    await this.notificacoesService.notificarAutores(
+      solicitacao.projeto_uuid,
+      'SOLICITACAO_DECISAO',
+      'Decisão sobre desativação',
+      `A solicitação de desativação do projeto "${solicitacao.projeto_titulo}" foi ${status}.`,
+    );
+    await this.notificacoesService.notificarOrientadores(
+      solicitacao.projeto_uuid,
+      'SOLICITACAO_DECISAO',
+      'Decisão sobre desativação',
+      `A solicitação de desativação do projeto "${solicitacao.projeto_titulo}" foi ${status}.`,
     );
 
     return { mensagem: `Solicitação ${status.toLowerCase()}` };

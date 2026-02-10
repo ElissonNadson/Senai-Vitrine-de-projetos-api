@@ -20,7 +20,6 @@ import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 import { ScheduleModule } from '@nestjs/schedule';
 import { JwtModule } from '@nestjs/jwt';
-import { EmailModule } from './modules/email/email.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 
@@ -62,7 +61,6 @@ import { join } from 'path';
     UploadModule,
     EtapasModule,
     ProgressaoModule,
-    EmailModule,
     NotificacoesModule,
     SessoesModule,
     NoticiasModule,

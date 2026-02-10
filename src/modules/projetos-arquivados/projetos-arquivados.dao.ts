@@ -112,6 +112,23 @@ export class ProjetosArquivadosDao {
     return result.rows;
   }
 
+  async listarTodasSolicitacoesPendentes(): Promise<any[]> {
+    const result = await this.pool.query(
+      `SELECT 
+        pa.*,
+        p.titulo as projeto_titulo,
+        aluno.nome as aluno_nome,
+        aluno.email as aluno_email
+       FROM projetos_arquivados pa
+       INNER JOIN projetos p ON pa.projeto_uuid = p.uuid
+       INNER JOIN usuarios aluno ON pa.aluno_uuid = aluno.uuid
+       WHERE pa.status = 'PENDENTE'
+       ORDER BY pa.created_at DESC`,
+    );
+
+    return result.rows;
+  }
+
   /**
    * Lista solicitações do aluno
    */
@@ -123,7 +140,7 @@ export class ProjetosArquivadosDao {
         orientador.nome as orientador_nome
        FROM projetos_arquivados pa
        INNER JOIN projetos p ON pa.projeto_uuid = p.uuid
-       INNER JOIN usuarios orientador ON pa.orientador_uuid = orientador.uuid
+       LEFT JOIN usuarios orientador ON pa.orientador_uuid = orientador.uuid
        WHERE pa.aluno_uuid = $1
        ORDER BY pa.created_at DESC`,
       [alunoUuid],

@@ -110,6 +110,14 @@ export class Passo2ProjetoDto {
   @IsBoolean()
   @IsOptional()
   saga_senai?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  participou_edital?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  ganhou_premio?: boolean;
 }
 
 /**

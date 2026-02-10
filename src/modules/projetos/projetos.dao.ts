@@ -310,9 +310,9 @@ export class ProjetosDao {
       SELECT 
         p.uuid, p.titulo, p.descricao, p.banner_url, p.fase_atual, 
         p.criado_em, p.data_publicacao, p.status, p.visibilidade,
-        p.itinerario, p.lab_maker, p.participou_saga,
+        p.itinerario, p.lab_maker, p.participou_saga, p.participou_edital, p.ganhou_premio,
         d.nome as departamento, d.cor_hex as departamento_cor,
-        c.nome as curso_nome,
+        COALESCE(p.curso, c.nome) as curso_nome,
         -- Subquery para autores (JSON array)
         (
           SELECT COALESCE(json_agg(json_build_object(
@@ -460,6 +460,16 @@ export class ProjetosDao {
       valores.push(dados.participou_saga);
     }
 
+    if (dados.participou_edital !== undefined) {
+      campos.push(`participou_edital = $${paramIndex++}`);
+      valores.push(dados.participou_edital);
+    }
+
+    if (dados.ganhou_premio !== undefined) {
+      campos.push(`ganhou_premio = $${paramIndex++}`);
+      valores.push(dados.ganhou_premio);
+    }
+
     if (dados.categoria !== undefined) {
       campos.push(`categoria = $${paramIndex++}`);
       valores.push(dados.categoria);
@@ -534,7 +544,7 @@ export class ProjetosDao {
    */
   async deletarProjeto(projetoUuid: string): Promise<void> {
     await this.pool.query(
-      'UPDATE projetos SET status = $1 WHERE uuid = $2',
+      'UPDATE projetos SET status = $1, arquivado = TRUE WHERE uuid = $2',
       ['ARQUIVADO', projetoUuid],
     );
   }
@@ -549,14 +559,15 @@ export class ProjetosDao {
     let params: any[];
 
     if (tipoUsuario.toUpperCase() === 'DOCENTE') {
-      // Para docente, verifica se tem projetos onde é orientador
-      whereClause = `WHERE p.uuid IN (
-        SELECT pp.projeto_uuid FROM projetos_docentes pp WHERE pp.usuario_uuid = $1
-      ) AND p.status != 'ARQUIVADO'`;
+      // Para docente: projetos onde é orientador OU que criou
+      whereClause = `WHERE (
+        p.uuid IN (SELECT pp.projeto_uuid FROM projetos_docentes pp WHERE pp.usuario_uuid = $1)
+        OR p.criado_por_uuid = $1
+      ) AND p.status NOT IN ('ARQUIVADO', 'EXCLUIDO')`;
       params = [usuarioUuid];
     } else {
       // Para aluno, buscar por lider_uuid
-      whereClause = `WHERE p.lider_uuid = $1 AND p.status != 'ARQUIVADO'`;
+      whereClause = `WHERE p.lider_uuid = $1 AND p.status NOT IN ('ARQUIVADO', 'EXCLUIDO')`;
       params = [usuarioUuid];
     }
 
@@ -565,7 +576,7 @@ export class ProjetosDao {
         p.uuid, p.titulo, p.descricao, p.banner_url, p.fase_atual, 
         p.criado_em, p.data_publicacao, p.status, p.visibilidade,
         d.nome as departamento, d.cor_hex as departamento_cor,
-        c.nome as curso_nome, c.sigla as curso_sigla,
+        COALESCE(p.curso, c.nome) as curso_nome, c.sigla as curso_sigla,
         -- Subquery para autores (JSON array)
         (
           SELECT COALESCE(json_agg(json_build_object(
@@ -667,8 +678,10 @@ export class ProjetosDao {
            itinerario = $5,
            lab_maker = $6,
            participou_saga = $7,
+           participou_edital = $8,
+           ganhou_premio = $9,
            atualizado_em = CURRENT_TIMESTAMP
-       WHERE uuid = $8`,
+       WHERE uuid = $10`,
       [
         dados.curso,
         dados.turma,
@@ -677,6 +690,8 @@ export class ProjetosDao {
         dados.itinerario || false,
         dados.senai_lab || false,
         dados.saga_senai || false,
+        dados.participou_edital || false,
+        dados.ganhou_premio || false,
         projetoUuid,
       ],
     );

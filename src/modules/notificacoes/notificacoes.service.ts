@@ -8,6 +8,7 @@ import { Pool } from 'pg';
 import { NotificacoesDao } from './notificacoes.dao';
 import { enqueueEmail } from '../../common/publishers/emailPublisher';
 import { assuntoPorTipo } from '../../common/utils/email-templates.util';
+import { gerarHtmlEmail } from '../../common/utils/email-html-templates.util';
 
 @Injectable()
 export class NotificacoesService {
@@ -17,7 +18,8 @@ export class NotificacoesService {
   ) { }
 
   /**
-   * Cria notificação para usuário(s)
+   * Cria notificação para usuário(s) e envia email estilizado via fila RabbitMQ.
+   * @param extras Dados extras para personalizar o template de email (projetoTitulo, diff, papel, etc.)
    */
   async criarNotificacao(
     usuarioUuid: string | string[],
@@ -25,6 +27,7 @@ export class NotificacoesService {
     titulo: string,
     mensagem: string,
     linkRelacionado?: string,
+    extras?: Record<string, any>,
   ): Promise<void> {
     const usuarios = Array.isArray(usuarioUuid) ? usuarioUuid : [usuarioUuid];
 
@@ -38,7 +41,7 @@ export class NotificacoesService {
         linkRelacionado,
       );
 
-      // Opcional: envia email via fila RabbitMQ, se habilitado por env
+      // Envia email via fila RabbitMQ, se habilitado
       if (process.env.SEND_EMAIL_NOTIFICATIONS === 'true') {
         try {
           const userResult = await this.pool.query(
@@ -47,11 +50,14 @@ export class NotificacoesService {
           );
           const user = userResult.rows[0];
           if (user && user.email) {
+            const frontendUrl = process.env.FRONTEND_URL || '';
+            const fullLink = linkRelacionado ? `${frontendUrl}${linkRelacionado}` : undefined;
+
             await enqueueEmail({
               to: { email: user.email, name: user.nome },
               subject: subjectTitle,
               textContent: mensagem,
-              htmlContent: `<p>${mensagem.replace(/\n/g, '<br/>')}</p>${linkRelacionado ? `<p><a href="${linkRelacionado}">Ver detalhes</a></p>` : ''}`,
+              htmlContent: gerarHtmlEmail(tipo, mensagem, fullLink, extras),
               tipo,
               linkRelacionado,
             });
@@ -199,6 +205,66 @@ export class NotificacoesService {
     await this.notificacoesDao.deletarNotificacao(notificacaoUuid);
 
     return { mensagem: 'Notificação deletada' };
+  }
+
+  /**
+   * Notifica todos os administradores do sistema
+   */
+  async notificarAdmins(
+    tipo: string,
+    titulo: string,
+    mensagem: string,
+    linkRelacionado?: string,
+    extras?: Record<string, any>,
+  ): Promise<void> {
+    const adminsResult = await this.pool.query(
+      `SELECT uuid FROM usuarios WHERE tipo = 'ADMIN' AND ativo = TRUE`,
+    );
+    const uuids = adminsResult.rows.map((r) => r.uuid);
+    if (uuids.length > 0) {
+      await this.criarNotificacao(uuids, tipo, titulo, mensagem, linkRelacionado, extras);
+    }
+  }
+
+  /**
+   * Notifica membros removidos de um projeto
+   */
+  async notificarMembrosRemovidos(
+    removidosUuids: string[],
+    projetoTitulo: string,
+    projetoUuid: string,
+  ): Promise<void> {
+    if (!removidosUuids || removidosUuids.length === 0) return;
+
+    await this.criarNotificacao(
+      removidosUuids,
+      'VINCULO_REMOVIDO',
+      'Você foi removido de um projeto',
+      `Você foi removido do projeto "${projetoTitulo}"`,
+      `/projetos/${projetoUuid}`,
+      { projetoTitulo },
+    );
+  }
+
+  /**
+   * Notifica todos os envolvidos quando um projeto é arquivado
+   */
+  async notificarProjetoArquivado(
+    projetoUuid: string,
+    projetoTitulo: string,
+  ): Promise<void> {
+    await this.notificarAutores(
+      projetoUuid,
+      'PROJETO_ARQUIVADO',
+      'Projeto arquivado',
+      `O projeto "${projetoTitulo}" foi arquivado.`,
+    );
+    await this.notificarOrientadores(
+      projetoUuid,
+      'PROJETO_ARQUIVADO',
+      'Projeto arquivado',
+      `O projeto "${projetoTitulo}" foi arquivado.`,
+    );
   }
 
   /**

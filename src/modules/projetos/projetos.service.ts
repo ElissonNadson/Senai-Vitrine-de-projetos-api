@@ -36,9 +36,9 @@ export class ProjetosService {
     dados: Passo1ProjetoDto,
     usuario: JwtPayload,
   ): Promise<{ uuid: string; mensagem: string }> {
-    // Valida que usuário é aluno ou docente
-    if (usuario.tipo !== 'ALUNO' && usuario.tipo !== 'DOCENTE') {
-      throw new ForbiddenException('Apenas alunos e docentes podem criar projetos');
+    // Valida que usuário é aluno, docente ou admin
+    if (usuario.tipo !== 'ALUNO' && usuario.tipo !== 'DOCENTE' && usuario.tipo !== 'ADMIN') {
+      throw new ForbiddenException('Apenas alunos, docentes e administradores podem criar projetos');
     }
 
     // Verifica se título já existe
@@ -110,6 +110,7 @@ export class ProjetosService {
         'Projeto criado',
         `Seu projeto "${dados.titulo}" foi criado.`,
         `/projetos/${projetoUuid}`,
+        { projetoTitulo: dados.titulo },
       );
 
       return {
@@ -294,10 +295,22 @@ export class ProjetosService {
       // Adiciona autores
       await this.projetosDao.adicionarAutores(projetoUuid, dados.autores, client);
 
+      // Garante que o criador docente não se remova da lista de orientadores
+      let docentesUuids = [...dados.docentes_uuids];
+      if (projeto.criado_por_uuid) {
+        const criadorResult = await client.query(
+          "SELECT tipo FROM usuarios WHERE uuid = $1",
+          [projeto.criado_por_uuid],
+        );
+        if (criadorResult.rows[0]?.tipo === 'DOCENTE' && !docentesUuids.includes(projeto.criado_por_uuid)) {
+          docentesUuids.push(projeto.criado_por_uuid);
+        }
+      }
+
       // Adiciona orientadores
       await this.projetosDao.adicionarOrientadores(
         projetoUuid,
-        dados.docentes_uuids,
+        docentesUuids,
         client,
       );
 
@@ -332,8 +345,18 @@ export class ProjetosService {
           'Você foi adicionado ao projeto',
           `Você foi adicionado ao projeto "${projeto.titulo}"`,
           `/projetos/${projetoUuid}`,
+          { projetoTitulo: projeto.titulo, papel: 'integrante' },
         );
       }
+      // Notificar membros removidos
+      if (autoresDiff.removidos.length > 0) {
+        await this.notificacoesService.notificarMembrosRemovidos(
+          autoresDiff.removidos,
+          projeto.titulo,
+          projetoUuid,
+        );
+      }
+
       const antigosOrientadoresUuids = orientadoresAnteriores.map(o => String(o.usuario_uuid));
       const novosOrientadoresUuids = (dados.docentes_uuids || []).map(String);
       const orientadoresDiff = diffLista(antigosOrientadoresUuids, novosOrientadoresUuids);
@@ -342,8 +365,17 @@ export class ProjetosService {
           uuid,
           'VINCULO_ADICIONADO',
           'Você foi adicionado ao projeto',
-          `Você foi adicionado ao projeto "${projeto.titulo}"`,
+          `Você foi adicionado como orientador no projeto "${projeto.titulo}"`,
           `/projetos/${projetoUuid}`,
+          { projetoTitulo: projeto.titulo, papel: 'orientador' },
+        );
+      }
+      // Notificar orientadores removidos
+      if (orientadoresDiff.removidos.length > 0) {
+        await this.notificacoesService.notificarMembrosRemovidos(
+          orientadoresDiff.removidos,
+          projeto.titulo,
+          projetoUuid,
         );
       }
 
@@ -861,26 +893,23 @@ export class ProjetosService {
     //   throw new ForbiddenException('Não é possível excluir um projeto publicado. Apenas rascunhos podem ser excluídos.');
     // }
 
-    // Apenas admin ou líder pode deletar
+    // Permissão: ADMIN, líder (ALUNO), orientador (DOCENTE) ou criador
     let temPermissao = usuario.tipo === 'ADMIN';
 
     if (!temPermissao && usuario.tipo === 'ALUNO') {
-      const alunoResult = await this.pool.query(
-        'SELECT 1 FROM alunos WHERE usuario_uuid = $1',
-        [usuario.uuid],
+      const liderResult = await this.pool.query(
+        'SELECT 1 FROM projetos_alunos WHERE projeto_uuid = $1 AND usuario_uuid = $2 AND papel = $3',
+        [projetoUuid, usuario.uuid, 'LIDER'],
       );
-
-      if (alunoResult.rows.length > 0) {
-        const liderResult = await this.pool.query(
-          'SELECT 1 FROM projetos_alunos WHERE projeto_uuid = $1 AND usuario_uuid = $2 AND papel = $3',
-          [projetoUuid, alunoResult.rows[0].uuid, 'LIDER'],
-        );
-        temPermissao = liderResult.rows.length > 0;
-      }
+      temPermissao = liderResult.rows.length > 0;
     }
 
     if (!temPermissao && usuario.tipo === 'DOCENTE') {
       temPermissao = await this.projetosDao.verificarOrientadorProjeto(projetoUuid, usuario.uuid);
+    }
+
+    if (!temPermissao) {
+      temPermissao = projeto.criado_por_uuid === usuario.uuid;
     }
 
     if (!temPermissao) {
@@ -890,6 +919,9 @@ export class ProjetosService {
     }
 
     await this.projetosDao.deletarProjeto(projetoUuid);
+
+    // Notificar autores e orientadores sobre o arquivamento
+    await this.notificacoesService.notificarProjetoArquivado(projetoUuid, projeto.titulo);
 
     return { mensagem: 'Projeto arquivado com sucesso' };
   }

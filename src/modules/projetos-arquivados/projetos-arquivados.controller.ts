@@ -24,7 +24,6 @@ export class ProjetosArquivadosController {
   /**
    * POST /projetos-arquivados/solicitar
    * Aluno solicita arquivamento de projeto
-   * @requires ALUNO
    */
   @Post('solicitar')
   @UseGuards(AuthGuard('jwt'))
@@ -38,7 +37,6 @@ export class ProjetosArquivadosController {
   /**
    * POST /projetos-arquivados/aprovar
    * Orientador aprova solicitação de arquivamento
-   * @requires PROFESSOR
    */
   @Post('aprovar')
   @UseGuards(AuthGuard('jwt'))
@@ -52,7 +50,6 @@ export class ProjetosArquivadosController {
   /**
    * POST /projetos-arquivados/negar
    * Orientador nega solicitação de arquivamento
-   * @requires PROFESSOR
    */
   @Post('negar')
   @UseGuards(AuthGuard('jwt'))
@@ -64,9 +61,85 @@ export class ProjetosArquivadosController {
   }
 
   /**
+   * POST /projetos-arquivados/desativar/:projetoUuid
+   * Docente desativa projeto diretamente
+   */
+  @Post('desativar/:projetoUuid')
+  @UseGuards(AuthGuard('jwt'))
+  async desativarDiretamente(
+    @Param('projetoUuid') projetoUuid: string,
+    @Body('justificativa') justificativa: string,
+    @CurrentUser() usuario: any,
+  ) {
+    return this.projetosArquivadosService.desativarDiretamente(
+      projetoUuid,
+      justificativa || 'Desativado pelo orientador',
+      usuario,
+    );
+  }
+
+  /**
+   * POST /projetos-arquivados/excluir/:projetoUuid
+   * Admin exclui projeto permanentemente
+   */
+  @Post('excluir/:projetoUuid')
+  @UseGuards(AuthGuard('jwt'))
+  async excluirProjeto(
+    @Param('projetoUuid') projetoUuid: string,
+    @Body('justificativa') justificativa: string,
+    @CurrentUser() usuario: any,
+  ) {
+    return this.projetosArquivadosService.excluirProjeto(
+      projetoUuid,
+      justificativa || 'Excluído pelo administrador',
+      usuario,
+    );
+  }
+
+  /**
+   * POST /projetos-arquivados/reativar/:projetoUuid
+   * Admin reativa projeto arquivado
+   */
+  @Post('reativar/:projetoUuid')
+  @UseGuards(AuthGuard('jwt'))
+  async reativarProjeto(
+    @Param('projetoUuid') projetoUuid: string,
+    @CurrentUser() usuario: any,
+  ) {
+    return this.projetosArquivadosService.reativarProjeto(projetoUuid, usuario);
+  }
+
+  /**
+   * POST /projetos-arquivados/solicitar-reativacao/:projetoUuid
+   * Aluno solicita reativação de projeto excluído
+   */
+  @Post('solicitar-reativacao/:projetoUuid')
+  @UseGuards(AuthGuard('jwt'))
+  async solicitarReativacao(
+    @Param('projetoUuid') projetoUuid: string,
+    @Body('justificativa') justificativa: string,
+    @CurrentUser() usuario: any,
+  ) {
+    return this.projetosArquivadosService.solicitarReativacao(
+      projetoUuid,
+      justificativa || 'Solicito a reativação deste projeto',
+      usuario,
+    );
+  }
+
+  /**
+   * GET /projetos-arquivados/desativados
+   * Lista projetos desativados/arquivados do usuário
+   */
+  @Get('desativados')
+  @UseGuards(AuthGuard('jwt'))
+  async listarProjetosDesativados(@CurrentUser() usuario: any) {
+    return this.projetosArquivadosService.listarProjetosDesativados(usuario);
+  }
+
+  /**
    * GET /projetos-arquivados/pendentes
    * Lista solicitações pendentes do orientador
-   * @requires PROFESSOR
    */
   @Get('pendentes')
   @UseGuards(AuthGuard('jwt'))
@@ -77,7 +150,6 @@ export class ProjetosArquivadosController {
   /**
    * GET /projetos-arquivados/minhas
    * Lista solicitações do aluno logado
-   * @requires ALUNO
    */
   @Get('minhas')
   @UseGuards(AuthGuard('jwt'))
@@ -88,7 +160,6 @@ export class ProjetosArquivadosController {
   /**
    * GET /projetos-arquivados/:uuid
    * Busca detalhes de uma solicitação específica
-   * @requires Autenticado (Aluno solicitante ou Orientador responsável)
    */
   @Get(':uuid')
   @UseGuards(AuthGuard('jwt'))
@@ -102,7 +173,6 @@ export class ProjetosArquivadosController {
   /**
    * GET /projetos-arquivados/projeto/:projetoUuid/historico
    * Busca histórico de solicitações de um projeto
-   * @requires Autenticado (Aluno do projeto ou Orientador)
    */
   @Get('projeto/:projetoUuid/historico')
   @UseGuards(AuthGuard('jwt'))

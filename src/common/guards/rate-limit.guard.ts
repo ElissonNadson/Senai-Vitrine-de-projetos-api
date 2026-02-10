@@ -94,7 +94,7 @@ export class RateLimitGuard implements CanActivate {
 @Injectable()
 export class AuthRateLimitGuard extends RateLimitGuard {
   constructor() {
-    super(5, 60000); // 5 requisições por minuto
+    super(1000, 60000); // AUMENTADO PARA TESTES: 1000 requisições por minuto
   }
 }
 
@@ -104,7 +104,7 @@ export class AuthRateLimitGuard extends RateLimitGuard {
 @Injectable()
 export class UploadRateLimitGuard extends RateLimitGuard {
   constructor() {
-    super(20, 60000); // 20 uploads por minuto
+    super(2000, 60000); // AUMENTADO PARA TESTES: 2000 uploads por minuto
   }
 }
 
@@ -114,6 +114,6 @@ export class UploadRateLimitGuard extends RateLimitGuard {
 @Injectable()
 export class ApiRateLimitGuard extends RateLimitGuard {
   constructor() {
-    super(100, 60000); // 100 requisições por minuto
+    super(10000, 60000); // AUMENTADO PARA TESTES: 10000 requisições por minuto
   }
 }
