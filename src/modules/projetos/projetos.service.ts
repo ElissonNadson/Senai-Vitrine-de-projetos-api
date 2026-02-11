@@ -603,6 +603,24 @@ export class ProjetosService {
       );
     }
 
+    // VALIDAR PRIMEIRA FASE (IDEAÇÃO) - OBRIGATÓRIA PARA PUBLICAÇÃO
+    const fases = await this.projetosDao.buscarFases(projetoUuid);
+    const ideacao = fases['ideacao'] || fases['Ideação'] || fases['IDEAÇÃO'];
+    const mensagem =
+      'Para publicar o projeto, é obrigatório preencher a fase de Ideação com descrição e pelo menos um anexo.';
+
+    if (!ideacao) {
+      throw new BadRequestException(mensagem);
+    }
+
+    const temDescricao =
+      ideacao.descricao && ideacao.descricao.trim().length > 0;
+    const temAnexo = ideacao.anexos && ideacao.anexos.length > 0;
+
+    if (!temDescricao || !temAnexo) {
+      throw new BadRequestException(mensagem);
+    }
+
     const client = await this.pool.connect();
 
     try {

@@ -3,7 +3,7 @@ import { Pool, PoolClient } from 'pg';
 
 @Injectable()
 export class PerfilDao {
-  constructor(@Inject('PG_POOL') private readonly pool: Pool) { }
+  constructor(@Inject('PG_POOL') private readonly pool: Pool) {}
 
   /**
    * Obtém cliente de conexão para transações
@@ -170,7 +170,7 @@ export class PerfilDao {
   async buscarUsuarios(
     client: PoolClient,
     termo: string,
-    tipo?: 'ALUNO' | 'DOCENTE'
+    tipo?: 'ALUNO' | 'DOCENTE',
   ): Promise<any[]> {
     let query = `
       SELECT u.uuid, u.nome, u.email, u.avatar_url, u.tipo

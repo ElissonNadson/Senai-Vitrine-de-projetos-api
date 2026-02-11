@@ -15,9 +15,7 @@ import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 
 @Injectable()
 export class PerfilService {
-  constructor(
-    private readonly perfilDao: PerfilDao,
-  ) { }
+  constructor(private readonly perfilDao: PerfilDao) {}
 
   /**
    * Completa cadastro de aluno
@@ -97,12 +95,13 @@ export class PerfilService {
 
       // Verifica se matrícula já existe (apenas se foi informada)
       if (dto.matricula) {
-        const matriculaExiste = await this.perfilDao.verificarMatriculaExistente(
-          client,
-          dto.matricula,
-          'DOCENTE',
-          user.uuid,
-        );
+        const matriculaExiste =
+          await this.perfilDao.verificarMatriculaExistente(
+            client,
+            dto.matricula,
+            'DOCENTE',
+            user.uuid,
+          );
 
         if (matriculaExiste) {
           throw new ConflictException('Matrícula já cadastrada');
@@ -223,7 +222,10 @@ export class PerfilService {
   /**
    * Busca usuários por nome ou email
    */
-  async buscarUsuarios(termo: string, tipo?: 'ALUNO' | 'DOCENTE'): Promise<any[]> {
+  async buscarUsuarios(
+    termo: string,
+    tipo?: 'ALUNO' | 'DOCENTE',
+  ): Promise<any[]> {
     if (!termo || termo.length < 3) {
       return [];
     }

@@ -22,7 +22,7 @@ import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 @Controller('perfil')
 @UseGuards(AuthGuard('jwt'))
 export class PerfilController {
-  constructor(private readonly perfilService: PerfilService) { }
+  constructor(private readonly perfilService: PerfilService) {}
 
   /**
    * POST /perfil/completar/aluno
