@@ -281,11 +281,19 @@ export class UpdateProjetoDto {
 
   @IsBoolean()
   @IsOptional()
-  lab_maker?: boolean;
+  senai_lab?: boolean;
 
   @IsBoolean()
   @IsOptional()
-  participou_saga?: boolean;
+  saga_senai?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  participou_edital?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  ganhou_premio?: boolean;
 
   @IsString()
   @IsOptional()

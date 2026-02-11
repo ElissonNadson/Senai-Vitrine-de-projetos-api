@@ -19,7 +19,7 @@ import { AuthRateLimitGuard } from '../../common/guards/rate-limit.guard';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   /**
    * GET /auth/google
@@ -98,7 +98,10 @@ export class AuthController {
    */
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refreshToken(@Body() refreshTokenDto: RefreshTokenDto, @Res() res: Response) {
+  async refreshToken(
+    @Body() refreshTokenDto: RefreshTokenDto,
+    @Res() res: Response,
+  ) {
     const result = await this.authService.renovarToken(refreshTokenDto.token);
 
     // Emite novo token no cookie padronizado "token"

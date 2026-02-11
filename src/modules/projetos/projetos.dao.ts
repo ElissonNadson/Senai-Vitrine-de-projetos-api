@@ -3,7 +3,7 @@ import { Pool, PoolClient } from 'pg';
 
 @Injectable()
 export class ProjetosDao {
-  constructor(@Inject('PG_POOL') private readonly pool: Pool) { }
+  constructor(@Inject('PG_POOL') private readonly pool: Pool) {}
 
   /**
    * Verifica se título já existe
@@ -44,13 +44,7 @@ export class ProjetosDao {
         criado_por_uuid, lider_uuid, fase_atual, status
       ) VALUES ($1, $2, $3, $4, $5, 'IDEACAO', 'RASCUNHO')
       RETURNING uuid`,
-      [
-        dados.titulo,
-        dados.descricao,
-        dados.categoria,
-        usuarioUuid,
-        liderUuid
-      ],
+      [dados.titulo, dados.descricao, dados.categoria, usuarioUuid, liderUuid],
     );
 
     const projetoUuid = result.rows[0].uuid;
@@ -112,8 +106,6 @@ export class ProjetosDao {
       );
     }
   }
-
-
 
   /**
    * Finaliza projeto e publica (Passo 4)
@@ -249,10 +241,10 @@ export class ProjetosDao {
       fases[fase.nome_fase] = {
         uuid: fase.uuid,
         descricao: fase.descricao,
-        anexos: anexosResult.rows.map(a => ({
+        anexos: anexosResult.rows.map((a) => ({
           ...a,
-          file: null // Frontend expects File object but we can only provide metadata here. Frontend must handle 'id' based existing files.
-        }))
+          file: null, // Frontend expects File object but we can only provide metadata here. Frontend must handle 'id' based existing files.
+        })),
       };
     }
 
@@ -292,7 +284,13 @@ export class ProjetosDao {
   /**
    * Lista projetos com filtros e paginação
    */
-  async listarProjetos(filtros: any): Promise<{ projetos: any[]; total: number; pagina: number; limite: number; totalPaginas: number }> {
+  async listarProjetos(filtros: any): Promise<{
+    projetos: any[];
+    total: number;
+    pagina: number;
+    limite: number;
+    totalPaginas: number;
+  }> {
     const params: any[] = [];
     const limit = filtros.limit ? parseInt(filtros.limit) : 10;
     const offset = filtros.offset ? parseInt(filtros.offset) : 0;
@@ -310,7 +308,7 @@ export class ProjetosDao {
       SELECT 
         p.uuid, p.titulo, p.descricao, p.banner_url, p.fase_atual, 
         p.criado_em, p.data_publicacao, p.status, p.visibilidade,
-        p.itinerario, p.lab_maker, p.participou_saga, p.participou_edital, p.ganhou_premio,
+        p.itinerario, p.senai_lab, p.saga_senai, p.participou_edital, p.ganhou_premio,
         d.nome as departamento, d.cor_hex as departamento_cor,
         COALESCE(p.curso, c.nome) as curso_nome,
         -- Subquery para autores (JSON array)
@@ -401,7 +399,7 @@ export class ProjetosDao {
     // Executar queries
     const [countResult, dataResult] = await Promise.all([
       this.pool.query(countQuery, countParams),
-      this.pool.query(query, params)
+      this.pool.query(query, params),
     ]);
 
     const total = parseInt(countResult.rows[0]?.total || '0');
@@ -412,7 +410,7 @@ export class ProjetosDao {
       total,
       pagina,
       limite: limit,
-      totalPaginas
+      totalPaginas,
     };
   }
 
@@ -450,14 +448,14 @@ export class ProjetosDao {
       valores.push(dados.itinerario);
     }
 
-    if (dados.lab_maker !== undefined) {
-      campos.push(`lab_maker = $${paramIndex++}`);
-      valores.push(dados.lab_maker);
+    if (dados.senai_lab !== undefined) {
+      campos.push(`senai_lab = $${paramIndex++}`);
+      valores.push(dados.senai_lab);
     }
 
-    if (dados.participou_saga !== undefined) {
-      campos.push(`participou_saga = $${paramIndex++}`);
-      valores.push(dados.participou_saga);
+    if (dados.saga_senai !== undefined) {
+      campos.push(`saga_senai = $${paramIndex++}`);
+      valores.push(dados.saga_senai);
     }
 
     if (dados.participou_edital !== undefined) {
@@ -480,6 +478,46 @@ export class ProjetosDao {
       valores.push(dados.banner_url);
     }
 
+    if (dados.curso !== undefined) {
+      campos.push(`curso = $${paramIndex++}`);
+      valores.push(dados.curso);
+    }
+
+    if (dados.turma !== undefined) {
+      campos.push(`turma = $${paramIndex++}`);
+      valores.push(dados.turma);
+    }
+
+    if (dados.modalidade !== undefined) {
+      campos.push(`modalidade = $${paramIndex++}`);
+      valores.push(dados.modalidade);
+    }
+
+    if (dados.unidade_curricular !== undefined) {
+      campos.push(`unidade_curricular = $${paramIndex++}`);
+      valores.push(dados.unidade_curricular);
+    }
+
+    if (dados.link_repositorio !== undefined) {
+      campos.push(`link_repositorio = $${paramIndex++}`);
+      valores.push(dados.link_repositorio);
+    }
+
+    if (dados.codigo_visibilidade !== undefined) {
+      campos.push(`codigo_visibilidade = $${paramIndex++}`);
+      valores.push(dados.codigo_visibilidade);
+    }
+
+    if (dados.anexos_visibilidade !== undefined) {
+      campos.push(`anexos_visibilidade = $${paramIndex++}`);
+      valores.push(dados.anexos_visibilidade);
+    }
+
+    if (dados.aceitou_termos !== undefined) {
+      campos.push(`aceitou_termos = $${paramIndex++}`);
+      valores.push(dados.aceitou_termos);
+    }
+
     if (campos.length === 0) {
       return;
     }
@@ -499,10 +537,10 @@ export class ProjetosDao {
     client?: PoolClient,
   ): Promise<void> {
     const db = client || this.pool;
-    await db.query(
-      'UPDATE projetos SET fase_atual = $1 WHERE uuid = $2',
-      [fase, projetoUuid],
-    );
+    await db.query('UPDATE projetos SET fase_atual = $1 WHERE uuid = $2', [
+      fase,
+      projetoUuid,
+    ]);
   }
 
   /**
@@ -513,10 +551,9 @@ export class ProjetosDao {
     client?: PoolClient,
   ): Promise<void> {
     const db = client || this.pool;
-    await db.query(
-      'DELETE FROM projetos_tecnologias WHERE projeto_uuid = $1',
-      [projetoUuid],
-    );
+    await db.query('DELETE FROM projetos_tecnologias WHERE projeto_uuid = $1', [
+      projetoUuid,
+    ]);
   }
 
   /**
@@ -525,7 +562,7 @@ export class ProjetosDao {
   async incrementarCurtidas(uuid: string): Promise<void> {
     await this.pool.query(
       'UPDATE projetos SET curtidas_count = COALESCE(curtidas_count, 0) + 1 WHERE uuid = $1',
-      [uuid]
+      [uuid],
     );
   }
 
@@ -535,7 +572,7 @@ export class ProjetosDao {
   async incrementarVisualizacoes(uuid: string): Promise<void> {
     await this.pool.query(
       'UPDATE projetos SET visualizacoes_count = COALESCE(visualizacoes_count, 0) + 1 WHERE uuid = $1',
-      [uuid]
+      [uuid],
     );
   }
 
@@ -554,7 +591,10 @@ export class ProjetosDao {
    * Para ALUNO: busca projetos onde é líder
    * Para DOCENTE: busca projetos onde é orientador
    */
-  async listarMeusProjetos(usuarioUuid: string, tipoUsuario: string = 'ALUNO'): Promise<{ publicados: any[]; rascunhos: any[] }> {
+  async listarMeusProjetos(
+    usuarioUuid: string,
+    tipoUsuario: string = 'ALUNO',
+  ): Promise<{ publicados: any[]; rascunhos: any[] }> {
     let whereClause: string;
 
     if (tipoUsuario.toUpperCase() === 'DOCENTE') {
@@ -634,13 +674,17 @@ export class ProjetosDao {
         visibilidade: row.visibilidade,
         criado_em: row.criado_em,
         data_publicacao: row.data_publicacao,
-        departamento: row.departamento ? {
-          nome: row.departamento,
-          cor_hex: row.departamento_cor,
-        } : null,
-        curso: row.curso_nome ? {
-          nome: row.curso_nome,
-        } : null,
+        departamento: row.departamento
+          ? {
+              nome: row.departamento,
+              cor_hex: row.departamento_cor,
+            }
+          : null,
+        curso: row.curso_nome
+          ? {
+              nome: row.curso_nome,
+            }
+          : null,
         autores: row.autores || [],
         orientadores: row.orientadores || [],
         total_autores: parseInt(row.total_autores || '0'),
@@ -673,8 +717,8 @@ export class ProjetosDao {
            modalidade = $3,
            unidade_curricular = $4,
            itinerario = $5,
-           lab_maker = $6,
-           participou_saga = $7,
+           senai_lab = $6,
+           saga_senai = $7,
            participou_edital = $8,
            ganhou_premio = $9,
            atualizado_em = CURRENT_TIMESTAMP
@@ -753,7 +797,9 @@ export class ProjetosDao {
     client?: PoolClient,
   ): Promise<void> {
     const db = client || this.pool;
-    await db.query('DELETE FROM projetos_fases_anexos WHERE fase_uuid = $1', [faseUuid]);
+    await db.query('DELETE FROM projetos_fases_anexos WHERE fase_uuid = $1', [
+      faseUuid,
+    ]);
   }
 
   /**
@@ -920,7 +966,9 @@ export class ProjetosDao {
   /**
    * Valida se alunos existem no banco
    */
-  async validarAlunos(alunosUuids: string[]): Promise<{ validos: string[], invalidos: string[] }> {
+  async validarAlunos(
+    alunosUuids: string[],
+  ): Promise<{ validos: string[]; invalidos: string[] }> {
     if (alunosUuids.length === 0) {
       return { validos: [], invalidos: [] };
     }
@@ -930,8 +978,8 @@ export class ProjetosDao {
       [alunosUuids],
     );
 
-    const validos = result.rows.map(row => row.usuario_uuid);
-    const invalidos = alunosUuids.filter(uuid => !validos.includes(uuid));
+    const validos = result.rows.map((row) => row.usuario_uuid);
+    const invalidos = alunosUuids.filter((uuid) => !validos.includes(uuid));
 
     return { validos, invalidos };
   }
@@ -939,7 +987,9 @@ export class ProjetosDao {
   /**
    * Valida se docentes existem no banco
    */
-  async validarDocentes(docentesUuids: string[]): Promise<{ validos: string[], invalidos: string[] }> {
+  async validarDocentes(
+    docentesUuids: string[],
+  ): Promise<{ validos: string[]; invalidos: string[] }> {
     if (docentesUuids.length === 0) {
       return { validos: [], invalidos: [] };
     }
@@ -949,8 +999,8 @@ export class ProjetosDao {
       [docentesUuids],
     );
 
-    const validos = result.rows.map(row => row.usuario_uuid);
-    const invalidos = docentesUuids.filter(uuid => !validos.includes(uuid));
+    const validos = result.rows.map((row) => row.usuario_uuid);
+    const invalidos = docentesUuids.filter((uuid) => !validos.includes(uuid));
 
     return { validos, invalidos };
   }
@@ -1018,7 +1068,7 @@ export class ProjetosDao {
       return { alunos: [], docentes: [] };
     }
 
-    const normalized = emails.map(e => e.toLowerCase());
+    const normalized = emails.map((e) => e.toLowerCase());
 
     const result = await this.pool.query(
       `SELECT
@@ -1039,12 +1089,20 @@ export class ProjetosDao {
     );
 
     const alunos = result.rows
-      .filter(r => r.tipo === 'ALUNO' && r.usuario_uuid)
-      .map(r => ({ email: r.email, usuario_uuid: r.usuario_uuid, nome: r.nome }));
+      .filter((r) => r.tipo === 'ALUNO' && r.usuario_uuid)
+      .map((r) => ({
+        email: r.email,
+        usuario_uuid: r.usuario_uuid,
+        nome: r.nome,
+      }));
 
     const docentes = result.rows
-      .filter(r => r.tipo === 'DOCENTE' && r.usuario_uuid)
-      .map(r => ({ email: r.email, usuario_uuid: r.usuario_uuid, nome: r.nome }));
+      .filter((r) => r.tipo === 'DOCENTE' && r.usuario_uuid)
+      .map((r) => ({
+        email: r.email,
+        usuario_uuid: r.usuario_uuid,
+        nome: r.nome,
+      }));
 
     return { alunos, docentes };
   }
@@ -1075,9 +1133,9 @@ export class ProjetosDao {
       [termoBusca],
     );
 
-    return result.rows.map(row => ({
+    return result.rows.map((row) => ({
       ...row,
-      // Garante que usuario_uuid seja retornado como 'uuid' para o frontend se necessario, 
+      // Garante que usuario_uuid seja retornado como 'uuid' para o frontend se necessario,
       // mas mantemos a estrutura clara de aluno/docente
     }));
   }

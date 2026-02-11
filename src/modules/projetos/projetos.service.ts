@@ -27,7 +27,7 @@ export class ProjetosService {
     @Inject('PG_POOL') private readonly pool: Pool,
     private readonly projetosDao: ProjetosDao,
     private readonly notificacoesService: NotificacoesService,
-  ) { }
+  ) {}
 
   /**
    * Passo 1: Criar rascunho com informações básicas
@@ -37,8 +37,14 @@ export class ProjetosService {
     usuario: JwtPayload,
   ): Promise<{ uuid: string; mensagem: string }> {
     // Valida que usuário é aluno, docente ou admin
-    if (usuario.tipo !== 'ALUNO' && usuario.tipo !== 'DOCENTE' && usuario.tipo !== 'ADMIN') {
-      throw new ForbiddenException('Apenas alunos, docentes e administradores podem criar projetos');
+    if (
+      usuario.tipo !== 'ALUNO' &&
+      usuario.tipo !== 'DOCENTE' &&
+      usuario.tipo !== 'ADMIN'
+    ) {
+      throw new ForbiddenException(
+        'Apenas alunos, docentes e administradores podem criar projetos',
+      );
     }
 
     // Verifica se título já existe
@@ -80,7 +86,7 @@ export class ProjetosService {
         await this.projetosDao.adicionarOrientadores(
           projetoUuid,
           [usuario.uuid],
-          client
+          client,
         );
       }
 
@@ -208,7 +214,8 @@ export class ProjetosService {
       }
 
       return {
-        mensagem: 'Informações acadêmicas atualizadas. Prossiga para o Passo 3.',
+        mensagem:
+          'Informações acadêmicas atualizadas. Prossiga para o Passo 3.',
       };
     } catch (error) {
       await client.query('ROLLBACK');
@@ -246,21 +253,23 @@ export class ProjetosService {
     }
 
     // Valida se todos os alunos existem
-    const alunosUuids = dados.autores.map(a => a.usuario_uuid);
+    const alunosUuids = dados.autores.map((a) => a.usuario_uuid);
     const validacaoAlunos = await this.projetosDao.validarAlunos(alunosUuids);
 
     if (validacaoAlunos.invalidos.length > 0) {
       throw new BadRequestException(
-        `Os seguintes alunos não foram encontrados: ${validacaoAlunos.invalidos.join(', ')}`
+        `Os seguintes alunos não foram encontrados: ${validacaoAlunos.invalidos.join(', ')}`,
       );
     }
 
     // Valida se todos os docentes existem
-    const validacaoDocentes = await this.projetosDao.validarDocentes(dados.docentes_uuids);
+    const validacaoDocentes = await this.projetosDao.validarDocentes(
+      dados.docentes_uuids,
+    );
 
     if (validacaoDocentes.invalidos.length > 0) {
       throw new BadRequestException(
-        `Os seguintes docentes não foram encontrados: ${validacaoDocentes.invalidos.join(', ')}`
+        `Os seguintes docentes não foram encontrados: ${validacaoDocentes.invalidos.join(', ')}`,
       );
     }
 
@@ -274,13 +283,15 @@ export class ProjetosService {
       if (projeto.lider_uuid !== novaLiderUuid) {
         await client.query(
           'UPDATE projetos SET lider_uuid = $1 WHERE uuid = $2',
-          [novaLiderUuid, projetoUuid]
+          [novaLiderUuid, projetoUuid],
         );
       }
 
       // Captura equipe anterior para auditoria
-      const autoresAnteriores = await this.projetosDao.buscarAutores(projetoUuid);
-      const orientadoresAnteriores = await this.projetosDao.buscarOrientadores(projetoUuid);
+      const autoresAnteriores =
+        await this.projetosDao.buscarAutores(projetoUuid);
+      const orientadoresAnteriores =
+        await this.projetosDao.buscarOrientadores(projetoUuid);
 
       // Remove autores e orientadores atuais
       await client.query(
@@ -293,16 +304,23 @@ export class ProjetosService {
       );
 
       // Adiciona autores
-      await this.projetosDao.adicionarAutores(projetoUuid, dados.autores, client);
+      await this.projetosDao.adicionarAutores(
+        projetoUuid,
+        dados.autores,
+        client,
+      );
 
       // Garante que o criador docente não se remova da lista de orientadores
-      let docentesUuids = [...dados.docentes_uuids];
+      const docentesUuids = [...dados.docentes_uuids];
       if (projeto.criado_por_uuid) {
         const criadorResult = await client.query(
-          "SELECT tipo FROM usuarios WHERE uuid = $1",
+          'SELECT tipo FROM usuarios WHERE uuid = $1',
           [projeto.criado_por_uuid],
         );
-        if (criadorResult.rows[0]?.tipo === 'DOCENTE' && !docentesUuids.includes(projeto.criado_por_uuid)) {
+        if (
+          criadorResult.rows[0]?.tipo === 'DOCENTE' &&
+          !docentesUuids.includes(projeto.criado_por_uuid)
+        ) {
           docentesUuids.push(projeto.criado_por_uuid);
         }
       }
@@ -321,8 +339,11 @@ export class ProjetosService {
         'ATUALIZACAO_PASSO3',
         'Equipe (autores e orientadores) atualizada',
         {
-          autores: autoresAnteriores.map(a => ({ uuid: a.usuario_uuid, papel: a.papel })),
-          orientadores: orientadoresAnteriores.map(o => o.usuario_uuid),
+          autores: autoresAnteriores.map((a) => ({
+            uuid: a.usuario_uuid,
+            papel: a.papel,
+          })),
+          orientadores: orientadoresAnteriores.map((o) => o.usuario_uuid),
         },
         {
           autores: dados.autores,
@@ -335,8 +356,12 @@ export class ProjetosService {
 
       await client.query('COMMIT');
 
-      const antigosAutoresUuids = autoresAnteriores.map(a => String(a.usuario_uuid));
-      const novosAutoresUuids = (dados.autores || []).map(a => String(a.usuario_uuid));
+      const antigosAutoresUuids = autoresAnteriores.map((a) =>
+        String(a.usuario_uuid),
+      );
+      const novosAutoresUuids = (dados.autores || []).map((a) =>
+        String(a.usuario_uuid),
+      );
       const autoresDiff = diffLista(antigosAutoresUuids, novosAutoresUuids);
       for (const uuid of autoresDiff.adicionados) {
         await this.notificacoesService.criarNotificacao(
@@ -357,9 +382,14 @@ export class ProjetosService {
         );
       }
 
-      const antigosOrientadoresUuids = orientadoresAnteriores.map(o => String(o.usuario_uuid));
+      const antigosOrientadoresUuids = orientadoresAnteriores.map((o) =>
+        String(o.usuario_uuid),
+      );
       const novosOrientadoresUuids = (dados.docentes_uuids || []).map(String);
-      const orientadoresDiff = diffLista(antigosOrientadoresUuids, novosOrientadoresUuids);
+      const orientadoresDiff = diffLista(
+        antigosOrientadoresUuids,
+        novosOrientadoresUuids,
+      );
       for (const uuid of orientadoresDiff.adicionados) {
         await this.notificacoesService.criarNotificacao(
           uuid,
@@ -417,10 +447,14 @@ export class ProjetosService {
       await client.query('BEGIN');
 
       // Importar função de upload
-      const { salvarArquivoLocal, validarArquivoCompleto } = require('../../common/utils/file-upload.util');
+      const {
+        salvarArquivoLocal,
+        validarArquivoCompleto,
+      } = require('../../common/utils/file-upload.util');
 
       // Captura fases anteriores para auditoria
-      const fasesAnteriores = await this.projetosDao.buscarFasesProjeto(projetoUuid);
+      const fasesAnteriores =
+        await this.projetosDao.buscarFasesProjeto(projetoUuid);
 
       // Mapear arquivos recebidos por fieldname
       const arquivosPorCampo = new Map<string, Express.Multer.File>();
@@ -463,7 +497,7 @@ export class ProjetosService {
                 // Salvar arquivo no disco
                 const caminhoRelativo = await salvarArquivoLocal(
                   arquivo,
-                  `projetos/${fase.nome}`
+                  `projetos/${fase.nome}`,
                 );
 
                 // Atualizar anexo com URL do arquivo salvo
@@ -505,7 +539,10 @@ export class ProjetosService {
       if (dados.modelagem) fasesAlteradas.push('Modelagem');
       if (dados.prototipagem) fasesAlteradas.push('Prototipagem');
       if (dados.implementacao) fasesAlteradas.push('Implementação');
-      const resumo = fasesAlteradas.length > 0 ? `Fases alteradas: ${fasesAlteradas.join(', ')}` : '';
+      const resumo =
+        fasesAlteradas.length > 0
+          ? `Fases alteradas: ${fasesAlteradas.join(', ')}`
+          : '';
       await this.notificacoesService.notificarAutores(
         projetoUuid,
         'PROJETO_ATUALIZADO',
@@ -520,7 +557,8 @@ export class ProjetosService {
       );
 
       return {
-        mensagem: 'Fases do projeto salvas com sucesso. Prossiga para o Passo 5.',
+        mensagem:
+          'Fases do projeto salvas com sucesso. Prossiga para o Passo 5.',
       };
     } catch (error) {
       await client.query('ROLLBACK');
@@ -553,7 +591,9 @@ export class ProjetosService {
 
     // VALIDAR SE TEM LÍDER DEFINIDO ANTES DE PUBLICAR
     if (!projeto.lider_uuid && usuario.tipo !== 'ADMIN') {
-      throw new BadRequestException('Para publicar o projeto, é obrigatório definir um Aluno Líder na etapa 3 "Equipe".');
+      throw new BadRequestException(
+        'Para publicar o projeto, é obrigatório definir um Aluno Líder na etapa 3 "Equipe".',
+      );
     }
 
     // Valida que termos foram aceitos
@@ -634,7 +674,8 @@ export class ProjetosService {
       );
 
       return {
-        mensagem: 'Projeto publicado com sucesso! Agora ele está visível para todos.',
+        mensagem:
+          'Projeto publicado com sucesso! Agora ele está visível para todos.',
       };
     } catch (error) {
       await client.query('ROLLBACK');
@@ -664,9 +705,15 @@ export class ProjetosService {
       let temPermissao = usuario.tipo === 'ADMIN';
 
       if (!temPermissao && usuario.tipo === 'ALUNO') {
-        temPermissao = await this.projetosDao.verificarAutorProjeto(uuid, usuario.uuid);
+        temPermissao = await this.projetosDao.verificarAutorProjeto(
+          uuid,
+          usuario.uuid,
+        );
       } else if (!temPermissao && usuario.tipo === 'DOCENTE') {
-        temPermissao = await this.projetosDao.verificarOrientadorProjeto(uuid, usuario.uuid);
+        temPermissao = await this.projetosDao.verificarOrientadorProjeto(
+          uuid,
+          usuario.uuid,
+        );
       }
 
       if (!temPermissao) {
@@ -707,9 +754,16 @@ export class ProjetosService {
         if (usuario.tipo === 'ADMIN') {
           temPermissaoAnexos = true;
         } else if (usuario.tipo === 'ALUNO') {
-          temPermissaoAnexos = await this.projetosDao.verificarAutorProjeto(uuid, usuario.uuid);
+          temPermissaoAnexos = await this.projetosDao.verificarAutorProjeto(
+            uuid,
+            usuario.uuid,
+          );
         } else if (usuario.tipo === 'DOCENTE') {
-          temPermissaoAnexos = await this.projetosDao.verificarOrientadorProjeto(uuid, usuario.uuid);
+          temPermissaoAnexos =
+            await this.projetosDao.verificarOrientadorProjeto(
+              uuid,
+              usuario.uuid,
+            );
         }
       }
 
@@ -719,7 +773,7 @@ export class ProjetosService {
         if (fase && fase.anexos) {
           acc[faseName] = {
             ...fase,
-            anexos: fase.anexos.map(anexo => {
+            anexos: fase.anexos.map((anexo) => {
               if (!temPermissaoAnexos) {
                 // Sem permissão: remove a URL completamente
                 return {
@@ -740,7 +794,7 @@ export class ProjetosService {
                 }
                 return anexo;
               }
-            })
+            }),
           };
         } else {
           acc[faseName] = fase;
@@ -816,8 +870,8 @@ export class ProjetosService {
         categoria: projeto.categoria,
         repositorio_url: projeto.repositorio_url,
         itinerario: projeto.itinerario,
-        lab_maker: projeto.senai_lab,
-        participou_saga: projeto.saga_senai,
+        senai_lab: projeto.senai_lab,
+        saga_senai: projeto.saga_senai,
         banner_url: projeto.banner_url,
         curso: projeto.curso,
         turma: projeto.turma,
@@ -845,12 +899,17 @@ export class ProjetosService {
         descricao: 'Descrição',
         repositorio_url: 'Repositório',
         itinerario: 'Itinerário',
-        lab_maker: 'Lab Maker',
-        participou_saga: 'Participou da Saga',
+        senai_lab: 'Senai Lab',
+        saga_senai: 'Participou da Saga SENAI',
         categoria: 'Categoria',
         banner_url: 'Banner',
       } as any;
-      const diff = formatarDiff(projeto, dados, Object.keys(dados || {}), labels);
+      const diff = formatarDiff(
+        projeto,
+        dados,
+        Object.keys(dados || {}),
+        labels,
+      );
       if (diff && diff.length > 0) {
         await this.notificacoesService.notificarAutores(
           projetoUuid,
@@ -905,7 +964,10 @@ export class ProjetosService {
     }
 
     if (!temPermissao && usuario.tipo === 'DOCENTE') {
-      temPermissao = await this.projetosDao.verificarOrientadorProjeto(projetoUuid, usuario.uuid);
+      temPermissao = await this.projetosDao.verificarOrientadorProjeto(
+        projetoUuid,
+        usuario.uuid,
+      );
     }
 
     if (!temPermissao) {
@@ -921,7 +983,10 @@ export class ProjetosService {
     await this.projetosDao.deletarProjeto(projetoUuid);
 
     // Notificar autores e orientadores sobre o arquivamento
-    await this.notificacoesService.notificarProjetoArquivado(projetoUuid, projeto.titulo);
+    await this.notificacoesService.notificarProjetoArquivado(
+      projetoUuid,
+      projeto.titulo,
+    );
 
     return { mensagem: 'Projeto arquivado com sucesso' };
   }
@@ -929,12 +994,17 @@ export class ProjetosService {
   /**
    * Lista projetos do usuário logado (publicados e rascunhos)
    */
-  async listarMeusProjetos(usuario: JwtPayload): Promise<{ publicados: any[]; rascunhos: any[] }> {
+  async listarMeusProjetos(
+    usuario: JwtPayload,
+  ): Promise<{ publicados: any[]; rascunhos: any[] }> {
     if (!usuario || !usuario.uuid) {
       throw new ForbiddenException('Usuário não autenticado');
     }
 
-    return this.projetosDao.listarMeusProjetos(usuario.uuid, usuario.tipo || 'ALUNO');
+    return this.projetosDao.listarMeusProjetos(
+      usuario.uuid,
+      usuario.tipo || 'ALUNO',
+    );
   }
 
   /**
@@ -951,15 +1021,18 @@ export class ProjetosService {
 
     // Valida alunos
     if (dados.alunos_uuids && dados.alunos_uuids.length > 0) {
-      const validacaoAlunos = await this.projetosDao.validarAlunos(dados.alunos_uuids);
+      const validacaoAlunos = await this.projetosDao.validarAlunos(
+        dados.alunos_uuids,
+      );
       resultado.alunos.validos = validacaoAlunos.validos;
       resultado.alunos.invalidos = validacaoAlunos.invalidos;
 
       // Busca informações completas dos alunos válidos
       if (validacaoAlunos.validos.length > 0) {
-        resultado.alunos.dados = await this.projetosDao.buscarAlunosParaValidacao(
-          validacaoAlunos.validos,
-        );
+        resultado.alunos.dados =
+          await this.projetosDao.buscarAlunosParaValidacao(
+            validacaoAlunos.validos,
+          );
       }
     }
 
@@ -973,9 +1046,10 @@ export class ProjetosService {
 
       // Busca informações completas dos docentes válidos
       if (validacaoDocentes.validos.length > 0) {
-        resultado.docentes.dados = await this.projetosDao.buscarDocentesParaValidacao(
-          validacaoDocentes.validos,
-        );
+        resultado.docentes.dados =
+          await this.projetosDao.buscarDocentesParaValidacao(
+            validacaoDocentes.validos,
+          );
       }
     }
 
@@ -1010,12 +1084,15 @@ export class ProjetosService {
       throw new BadRequestException('Informe pelo menos um email');
     }
 
-    const { alunos, docentes } = await this.projetosDao.resolverUsuariosPorEmail(emails);
+    const { alunos, docentes } =
+      await this.projetosDao.resolverUsuariosPorEmail(emails);
 
-    const encontrados = new Set<string>([...alunos, ...docentes].map(u => u.email.toLowerCase()));
+    const encontrados = new Set<string>(
+      [...alunos, ...docentes].map((u) => u.email.toLowerCase()),
+    );
     const invalidos = emails
-      .map(e => e.toLowerCase())
-      .filter(email => !encontrados.has(email));
+      .map((e) => e.toLowerCase())
+      .filter((email) => !encontrados.has(email));
 
     return { alunos, docentes, invalidos };
   }
@@ -1035,7 +1112,11 @@ export class ProjetosService {
    */
   private calcularFaseAtual(dados: Passo4ProjetoDto): string {
     const hasContent = (fase: any) =>
-      fase && fase.descricao && fase.descricao.trim().length >= 50 && fase.anexos && fase.anexos.length > 0;
+      fase &&
+      fase.descricao &&
+      fase.descricao.trim().length >= 50 &&
+      fase.anexos &&
+      fase.anexos.length > 0;
 
     if (hasContent(dados.implementacao)) return 'IMPLEMENTACAO';
     if (hasContent(dados.prototipagem)) return 'IMPLEMENTACAO'; // Se já fez prototipagem, vai para implementação
@@ -1071,7 +1152,9 @@ export class ProjetosService {
   /**
    * Busca apenas as informações básicas do projeto (para verificação de anexo)
    */
-  async buscarProjetoParaAnexo(uuid: string): Promise<{ anexos_visibilidade: string } | null> {
+  async buscarProjetoParaAnexo(
+    uuid: string,
+  ): Promise<{ anexos_visibilidade: string } | null> {
     const projeto = await this.projetosDao.buscarPorUuid(uuid);
     if (!projeto) return null;
     return { anexos_visibilidade: projeto.anexos_visibilidade };
@@ -1080,15 +1163,23 @@ export class ProjetosService {
   /**
    * Verifica se usuário é autor do projeto
    */
-  async verificarAutorProjeto(projetoUuid: string, usuarioUuid: string): Promise<boolean> {
+  async verificarAutorProjeto(
+    projetoUuid: string,
+    usuarioUuid: string,
+  ): Promise<boolean> {
     return this.projetosDao.verificarAutorProjeto(projetoUuid, usuarioUuid);
   }
 
   /**
    * Verifica se usuário é orientador do projeto
    */
-  async verificarOrientadorProjeto(projetoUuid: string, usuarioUuid: string): Promise<boolean> {
-    return this.projetosDao.verificarOrientadorProjeto(projetoUuid, usuarioUuid);
+  async verificarOrientadorProjeto(
+    projetoUuid: string,
+    usuarioUuid: string,
+  ): Promise<boolean> {
+    return this.projetosDao.verificarOrientadorProjeto(
+      projetoUuid,
+      usuarioUuid,
+    );
   }
-
 }
