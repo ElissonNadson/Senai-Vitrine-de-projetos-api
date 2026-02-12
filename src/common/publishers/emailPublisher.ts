@@ -1,4 +1,4 @@
-import amqplib from 'amqplib';
+import * as amqplib from 'amqplib';
 
 export interface EmailRecipient {
   email: string;
@@ -38,12 +38,12 @@ export async function enqueueEmail(email: EmailMessage): Promise<void> {
         } catch (e) {
           // se declarar falhar porque canal foi fechado, cria novo canal e tenta novamente
           try {
-            try { await ch.close(); } catch (closeErr) {}
+            try { await ch.close(); } catch (closeErr) { }
             const ch2 = await conn.createConfirmChannel();
             await ch2.assertQueue(QUEUE, { durable: true });
             await ch2.sendToQueue(QUEUE, Buffer.from(JSON.stringify(email)), { persistent: true });
             await ch2.waitForConfirms();
-            try { await ch2.close(); } catch (e) {}
+            try { await ch2.close(); } catch (e) { }
             return;
           } catch (e2) {
             throw e2;
@@ -60,9 +60,9 @@ export async function enqueueEmail(email: EmailMessage): Promise<void> {
       await (ch as any).waitForConfirms();
     }
 
-    try { await ch.close(); } catch (e) {}
+    try { await ch.close(); } catch (e) { }
   } finally {
-    try { await conn.close(); } catch (e) {}
+    try { await conn.close(); } catch (e) { }
   }
 }
 

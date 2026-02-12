@@ -43,6 +43,7 @@ export class NotificacoesService {
 
       // Envia email via fila RabbitMQ, se habilitado
       if (process.env.SEND_EMAIL_NOTIFICATIONS === 'true') {
+        console.log(`[DEBUG] Tentando enviar email para usuario ${uuid} sobre ${titulo}`);
         try {
           const userResult = await this.pool.query(
             'SELECT nome, email FROM usuarios WHERE uuid = $1 AND ativo = TRUE',
@@ -50,6 +51,7 @@ export class NotificacoesService {
           );
           const user = userResult.rows[0];
           if (user && user.email) {
+            console.log(`[DEBUG] Usuario encontrado: ${user.email}. Enfileirando email...`);
             const frontendUrl = process.env.FRONTEND_URL || '';
             const fullLink = linkRelacionado ? `${frontendUrl}${linkRelacionado}` : undefined;
 
@@ -61,10 +63,16 @@ export class NotificacoesService {
               tipo,
               linkRelacionado,
             });
+            console.log(`[DEBUG] Email enfileirado com sucesso para ${user.email}`);
+          } else {
+            console.log(`[DEBUG] Usuario ${uuid} nao encontrado ou sem email.`);
           }
-        } catch (err) {
+        } catch (err: any) {
+          console.error(`[DEBUG] Erro ao enviar email: ${err.message}`, err);
           // Não bloqueia criação de notificação se email falhar
         }
+      } else {
+        console.log(`[DEBUG] Envio de email desabilitado (SEND_EMAIL_NOTIFICATIONS=${process.env.SEND_EMAIL_NOTIFICATIONS})`);
       }
     }
   }

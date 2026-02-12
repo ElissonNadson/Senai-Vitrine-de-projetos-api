@@ -83,7 +83,8 @@ export function emailProjetoAtualizado(
   return baseLayout(
     'Projeto atualizado',
     `<p>O projeto <strong>${escapeHtml(projetoTitulo)}</strong> foi atualizado.</p>
-     ${linhas ? `<p style="font-weight:600;margin-bottom:4px">Campos alterados:</p><ul style="padding-left:20px;color:${TEXT_DARK}">${linhas}</ul>` : ''}`,
+     ${linhas ? `<p style="font-weight:600;margin-bottom:4px">O que mudou:</p><ul style="padding-left:20px;color:${TEXT_DARK}">${linhas}</ul>` : ''}
+     <p style="color:${TEXT_MUTED};font-size:13px">Acesse o projeto para ver os detalhes das alterações.</p>`,
     linkProjeto,
     'Ver projeto',
   );

@@ -11,10 +11,8 @@ export function formatarDiff(
     const n = (novos || {})[k];
     const eq = JSON.stringify(a) === JSON.stringify(n);
     if (eq) continue;
-    const nome = labels && labels[k] ? labels[k] : k;
-    const av = a === undefined || a === null ? '-' : String(a);
-    const nv = n === undefined || n === null ? '-' : String(n);
-    linhas.push(`${nome}: '${av}' → '${nv}'`);
+    const nome = labels && labels[k] ? labels[k] : k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    linhas.push(`Houve mudança em: ${nome}`);
   }
   return linhas.join('\n');
 }
