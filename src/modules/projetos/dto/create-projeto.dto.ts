@@ -95,9 +95,9 @@ export class Passo2ProjetoDto {
   modalidade: string;
 
   @IsString()
-  @IsOptional()
+  @IsNotEmpty({ message: 'Unidade curricular é obrigatória' })
   @MaxLength(255, { message: 'Nome da unidade curricular muito longo' })
-  unidade_curricular?: string;
+  unidade_curricular: string;
 
   @IsBoolean()
   @IsOptional()

@@ -492,7 +492,7 @@ export class ProjetosService {
 
               if (arquivo) {
                 // Validar arquivo
-                await validarArquivoCompleto(arquivo, 'ANEXO_DOCUMENTO');
+                await validarArquivoCompleto(arquivo, 'ANEXO_GERAL');
 
                 // Salvar arquivo no disco
                 const caminhoRelativo = await salvarArquivoLocal(
@@ -917,10 +917,18 @@ export class ProjetosService {
         descricao: 'Descrição',
         repositorio_url: 'Repositório',
         itinerario: 'Itinerário',
-        senai_lab: 'Senai Lab',
-        saga_senai: 'Participou da Saga SENAI',
+        senai_lab: 'SENAI Lab',
+        saga_senai: 'Participação na Saga SENAI',
         categoria: 'Categoria',
         banner_url: 'Banner',
+        participou_edital: 'Participação em edital',
+        ganhou_premio: 'Premiação',
+        link_repositorio: 'Link do repositório',
+        has_repositorio: 'Repositório',
+        codigo_visibilidade: 'Visibilidade do código',
+        anexos_visibilidade: 'Visibilidade dos anexos',
+        aceitou_termos: 'Termos de uso',
+        status: 'Status',
       } as any;
       const diff = formatarDiff(
         projeto,
@@ -965,10 +973,10 @@ export class ProjetosService {
       throw new NotFoundException('Projeto não encontrado');
     }
 
-    // Permite arquivar mesmo se publicado (solicitação do usuário)
-    // if (projeto.status === 'PUBLICADO') {
-    //   throw new ForbiddenException('Não é possível excluir um projeto publicado. Apenas rascunhos podem ser excluídos.');
-    // }
+    // Alunos não podem excluir projetos publicados — devem solicitar ao orientador
+    if (usuario.tipo === 'ALUNO' && projeto.status === 'PUBLICADO') {
+      throw new ForbiddenException('Alunos não podem excluir projetos publicados. Solicite a desativação ao orientador.');
+    }
 
     // Permissão: ADMIN, líder (ALUNO), orientador (DOCENTE) ou criador
     let temPermissao = usuario.tipo === 'ADMIN';
@@ -1007,6 +1015,57 @@ export class ProjetosService {
     );
 
     return { mensagem: 'Projeto arquivado com sucesso' };
+  }
+
+  /**
+   * Remove um anexo individual de uma fase do projeto
+   */
+  async removerAnexoFase(
+    projetoUuid: string,
+    anexoUuid: string,
+    usuario: JwtPayload,
+  ): Promise<{ mensagem: string }> {
+    const anexo = await this.projetosDao.buscarAnexoFaseComProjeto(anexoUuid);
+
+    if (!anexo) {
+      throw new NotFoundException('Anexo não encontrado');
+    }
+
+    if (anexo.projeto_uuid !== projetoUuid) {
+      throw new ForbiddenException('Anexo não pertence a este projeto');
+    }
+
+    // Permissão: ADMIN, líder (ALUNO), orientador (DOCENTE) ou criador
+    let temPermissao = usuario.tipo === 'ADMIN';
+
+    if (!temPermissao && usuario.tipo === 'ALUNO') {
+      const liderResult = await this.pool.query(
+        'SELECT 1 FROM projetos_alunos WHERE projeto_uuid = $1 AND usuario_uuid = $2 AND papel = $3',
+        [projetoUuid, usuario.uuid, 'LIDER'],
+      );
+      temPermissao = liderResult.rows.length > 0;
+    }
+
+    if (!temPermissao && usuario.tipo === 'DOCENTE') {
+      temPermissao = await this.projetosDao.verificarOrientadorProjeto(
+        projetoUuid,
+        usuario.uuid,
+      );
+    }
+
+    if (!temPermissao) {
+      temPermissao = anexo.criado_por_uuid === usuario.uuid;
+    }
+
+    if (!temPermissao) {
+      throw new ForbiddenException(
+        'Sem permissão para remover este anexo',
+      );
+    }
+
+    await this.projetosDao.removerAnexoFaseIndividual(anexoUuid);
+
+    return { mensagem: 'Anexo removido com sucesso' };
   }
 
   /**
