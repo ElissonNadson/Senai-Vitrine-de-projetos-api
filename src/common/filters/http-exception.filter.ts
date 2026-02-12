@@ -3,8 +3,8 @@ import {
   Catch,
   ArgumentsHost,
   HttpException,
-  HttpStatus,
   Logger,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Response } from 'express';
 
@@ -28,6 +28,28 @@ export class HttpExceptionFilter implements ExceptionFilter {
       `${request.method} ${request.url} - Status: ${status}`,
       exception.stack,
     );
+
+    // Tratamento especial para callback do Google OAuth
+    // Quando há erro de autenticação no callback, redireciona para frontend com erro
+    if (
+      request.url === '/auth/google/callback' &&
+      exception instanceof UnauthorizedException
+    ) {
+      console.log('Erro de autenticação no callback:', exceptionResponse);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const errorMessage = this.extractMessage(exceptionResponse);
+
+      const errorData = {
+        message: errorMessage,
+        error: 'Unauthorized',
+        statusCode: status,
+      };
+
+      const encodedError = encodeURIComponent(JSON.stringify(errorData));
+      return response.redirect(
+        `${frontendUrl}/auth/google/callback?error=${encodedError}`,
+      );
+    }
 
     // Formato padrão de erro da documentação
     const errorResponse = {
