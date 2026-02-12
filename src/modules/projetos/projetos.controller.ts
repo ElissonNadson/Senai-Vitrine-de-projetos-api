@@ -240,6 +240,20 @@ export class ProjetosController {
   }
 
   /**
+   * DELETE /projetos/:projetoUuid/anexo/:anexoUuid
+   * Remove um anexo individual de uma fase do projeto
+   */
+  @Delete(':projetoUuid/anexo/:anexoUuid')
+  @UseGuards(AuthGuard('jwt'))
+  async removerAnexoFase(
+    @Param('projetoUuid') projetoUuid: string,
+    @Param('anexoUuid') anexoUuid: string,
+    @CurrentUser() usuario: any,
+  ) {
+    return this.projetosService.removerAnexoFase(projetoUuid, anexoUuid, usuario);
+  }
+
+  /**
    * POST /projetos/:uuid/curtir
    * Curte um projeto
    */

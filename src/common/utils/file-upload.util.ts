@@ -70,14 +70,73 @@ export const TIPOS_ARQUIVO: Record<string, TipoArquivoConfig> = {
     descricao: 'Imagem anexa',
   },
   ANEXO_VIDEO: {
-    extensoesPermitidas: ['.mp4', '.webm', '.avi'],
-    mimeTypesPermitidos: ['video/mp4', 'video/webm', 'video/x-msvideo'],
+    extensoesPermitidas: ['.mp4', '.webm', '.avi', '.mov'],
+    mimeTypesPermitidos: ['video/mp4', 'video/webm', 'video/x-msvideo', 'video/quicktime'],
     magicNumbers: [
       '00000018', // MP4 (ftyp)
+      '00000020', // MP4 (ftyp variante)
       '1a45dfa3', // WebM
     ],
     tamanhoMaximoMB: 50,
     descricao: 'Vídeo anexo',
+  },
+  ANEXO_GERAL: {
+    extensoesPermitidas: [
+      // Documentos
+      '.pdf', '.doc', '.docx', '.txt', '.xlsx', '.xls', '.pptx', '.ppt',
+      // Imagens
+      '.jpg', '.jpeg', '.png', '.webp', '.gif',
+      // Vídeos
+      '.mp4', '.webm', '.avi', '.mov',
+      // Áudio
+      '.mp3',
+      // Arquivos compactados
+      '.zip', '.rar', '.7z', '.tar', '.gz',
+      // Arquivos especializados
+      '.fig', '.stl', '.obj',
+    ],
+    mimeTypesPermitidos: [
+      // Documentos
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      // Imagens
+      'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+      // Vídeos
+      'video/mp4', 'video/webm', 'video/x-msvideo', 'video/quicktime',
+      // Áudio
+      'audio/mpeg', 'audio/mp3',
+      // Compactados
+      'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
+      'application/x-tar', 'application/gzip',
+      // Especializados
+      'application/octet-stream', // .fig, .stl, .obj geralmente mapeiam para isso
+      'model/stl', 'model/obj',
+    ],
+    magicNumbers: [
+      '25504446', // PDF
+      'd0cf11e0', // DOC/XLS/PPT (OLE2)
+      '504b0304', // DOCX/XLSX/PPTX/ZIP (ZIP-based)
+      'ffd8ff',   // JPEG
+      '89504e47', // PNG
+      '52494646', // WebP/AVI (RIFF)
+      '47494638', // GIF
+      '00000018', // MP4
+      '00000020', // MP4 variante
+      '1a45dfa3', // WebM
+      '494433',   // MP3 (ID3)
+      'fffb',     // MP3 (sem ID3)
+      '526172',   // RAR
+      '377abcaf', // 7z
+      '1f8b',     // GZIP/TAR.GZ
+    ],
+    tamanhoMaximoMB: 50,
+    descricao: 'Anexo de projeto (documento, imagem, vídeo, áudio ou arquivo)',
   },
 };
 
@@ -109,14 +168,18 @@ export async function validarMagicNumbers(
     }
 
     const tipoDetectado = await detectFn(buffer);
+    const config = TIPOS_ARQUIVO[tipoEsperado];
 
+    // Para ANEXO_GERAL, formatos como .txt, .fig, .stl, .obj não são
+    // reconhecidos pelo file-type — permitir se a extensão já foi validada
     if (!tipoDetectado) {
+      if (tipoEsperado === 'ANEXO_GERAL') {
+        return true; // Extensão já foi validada em validarExtensao()
+      }
       throw new BadRequestException(
         'Não foi possível detectar o tipo do arquivo',
       );
     }
-
-    const config = TIPOS_ARQUIVO[tipoEsperado];
 
     // Verifica se o MIME type detectado está na lista de permitidos
     if (!config.mimeTypesPermitidos.includes(tipoDetectado.mime)) {
@@ -124,6 +187,11 @@ export async function validarMagicNumbers(
         `Arquivo inválido. Tipo detectado: ${tipoDetectado.mime}. ` +
         `Tipos permitidos: ${config.mimeTypesPermitidos.join(', ')}`,
       );
+    }
+
+    // Para ANEXO_GERAL, pular verificação de magic numbers (muitos formatos)
+    if (tipoEsperado === 'ANEXO_GERAL') {
+      return true;
     }
 
     // Verifica os primeiros bytes (magic numbers)

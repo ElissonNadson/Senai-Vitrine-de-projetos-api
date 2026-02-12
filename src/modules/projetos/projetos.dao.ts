@@ -804,6 +804,38 @@ export class ProjetosDao {
   }
 
   /**
+   * Remove um anexo individual por UUID, retornando dados para limpeza
+   */
+  async removerAnexoFaseIndividual(
+    anexoUuid: string,
+    client?: PoolClient,
+  ): Promise<{ url_arquivo: string } | null> {
+    const db = client || this.pool;
+    const result = await db.query(
+      'DELETE FROM projetos_fases_anexos WHERE uuid = $1 RETURNING url_arquivo',
+      [anexoUuid],
+    );
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Busca um anexo de fase com informações do projeto associado
+   */
+  async buscarAnexoFaseComProjeto(
+    anexoUuid: string,
+  ): Promise<any> {
+    const result = await this.pool.query(
+      `SELECT a.uuid, a.url_arquivo, a.nome_arquivo, f.projeto_uuid, p.criado_por_uuid, p.status
+       FROM projetos_fases_anexos a
+       JOIN projetos_fases f ON f.uuid = a.fase_uuid
+       JOIN projetos p ON p.uuid = f.projeto_uuid
+       WHERE a.uuid = $1`,
+      [anexoUuid],
+    );
+    return result.rows[0] || null;
+  }
+
+  /**
    * Atualiza configurações de repositório e privacidade (Passo 5)
    */
   async atualizarRepositorioPrivacidade(
