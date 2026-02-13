@@ -26,7 +26,7 @@ import {
 
 @Controller('projetos')
 export class ProjetosController {
-  constructor(private readonly projetosService: ProjetosService) { }
+  constructor(private readonly projetosService: ProjetosService) {}
 
   /**
    * POST /projetos/passo1
@@ -54,7 +54,11 @@ export class ProjetosController {
     @Body() dados: Passo2ProjetoDto,
     @CurrentUser() usuario: any,
   ) {
-    return this.projetosService.atualizarInformacoesAcademicas(uuid, dados, usuario);
+    return this.projetosService.atualizarInformacoesAcademicas(
+      uuid,
+      dados,
+      usuario,
+    );
   }
 
   /**
@@ -77,7 +81,7 @@ export class ProjetosController {
    * Salva fases do projeto com descrições e anexos (Passo 4)
    * Campos: ideacao, modelagem, prototipagem, implementacao
    * Aceita múltiplos arquivos via multipart/form-data
-   * 
+   *
    * Formato dos campos de arquivo:
    * - ideacao_crazy8
    * - modelagem_wireframe
@@ -92,7 +96,12 @@ export class ProjetosController {
     @UploadedFiles() arquivos: Express.Multer.File[],
     @CurrentUser() usuario: any,
   ) {
-    return this.projetosService.salvarFasesPasso4(uuid, dados, arquivos, usuario);
+    return this.projetosService.salvarFasesPasso4(
+      uuid,
+      dados,
+      arquivos,
+      usuario,
+    );
   }
 
   /**
@@ -107,7 +116,11 @@ export class ProjetosController {
     @Body() dados: Passo5ProjetoDto,
     @CurrentUser() usuario: any,
   ) {
-    return this.projetosService.configurarRepositorioPasso5(uuid, dados, usuario);
+    return this.projetosService.configurarRepositorioPasso5(
+      uuid,
+      dados,
+      usuario,
+    );
   }
 
   /**
@@ -166,6 +179,7 @@ export class ProjetosController {
   async listarProjetos(
     @Query('departamento_uuid') departamento_uuid?: string,
     @Query('fase') fase?: string,
+    @Query('status_fase') status_fase?: string,
     @Query('tecnologia_uuid') tecnologia_uuid?: string,
     @Query('busca') busca?: string,
     @Query('limit') limit?: string,
@@ -174,6 +188,7 @@ export class ProjetosController {
     return this.projetosService.listarProjetos({
       departamento_uuid,
       fase,
+      status_fase,
       tecnologia_uuid,
       busca,
       limit: limit ? parseInt(limit, 10) : undefined,
@@ -196,7 +211,10 @@ export class ProjetosController {
    * Busca projeto por UUID
    */
   @Get(':uuid')
-  async buscarProjeto(@Param('uuid') uuid: string, @CurrentUser() usuario?: any) {
+  async buscarProjeto(
+    @Param('uuid') uuid: string,
+    @CurrentUser() usuario?: any,
+  ) {
     try {
       return await this.projetosService.buscarProjeto(uuid, usuario);
     } catch (error) {
@@ -211,7 +229,10 @@ export class ProjetosController {
    */
   @Get(':uuid/tem-permissao-editar')
   @UseGuards(AuthGuard('jwt'))
-  async temPermissaoEditar(@Param('uuid') uuid: string, @CurrentUser() usuario: any) {
+  async temPermissaoEditar(
+    @Param('uuid') uuid: string,
+    @CurrentUser() usuario: any,
+  ) {
     return this.projetosService.podeEditarProjeto(usuario, uuid);
   }
 
@@ -235,7 +256,10 @@ export class ProjetosController {
    */
   @Delete(':uuid')
   @UseGuards(AuthGuard('jwt'))
-  async deletarProjeto(@Param('uuid') uuid: string, @CurrentUser() usuario: any) {
+  async deletarProjeto(
+    @Param('uuid') uuid: string,
+    @CurrentUser() usuario: any,
+  ) {
     return this.projetosService.deletarProjeto(uuid, usuario);
   }
 
@@ -250,7 +274,11 @@ export class ProjetosController {
     @Param('anexoUuid') anexoUuid: string,
     @CurrentUser() usuario: any,
   ) {
-    return this.projetosService.removerAnexoFase(projetoUuid, anexoUuid, usuario);
+    return this.projetosService.removerAnexoFase(
+      projetoUuid,
+      anexoUuid,
+      usuario,
+    );
   }
 
   /**
