@@ -6,7 +6,7 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import { Pool } from 'pg';
+import { Pool, PoolClient } from 'pg';
 import { ProjetosDao } from './projetos.dao';
 import {
   Passo1ProjetoDto,
@@ -20,6 +20,10 @@ import { censurarEmail } from '../../common/utils/email-validator.util';
 import { JwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 import { NotificacoesService } from '../notificacoes/notificacoes.service';
 import { formatarDiff, diffLista } from '../../common/utils/diff.util';
+import {
+  salvarArquivoLocal,
+  validarArquivoCompleto,
+} from '../../common/utils/file-upload.util';
 
 @Injectable()
 export class ProjetosService {
@@ -446,12 +450,6 @@ export class ProjetosService {
     try {
       await client.query('BEGIN');
 
-      // Importar função de upload
-      const {
-        salvarArquivoLocal,
-        validarArquivoCompleto,
-      } = require('../../common/utils/file-upload.util');
-
       // Captura fases anteriores para auditoria
       const fasesAnteriores =
         await this.projetosDao.buscarFasesProjeto(projetoUuid);
@@ -464,7 +462,7 @@ export class ProjetosService {
         }
       }
 
-      // Salvar cada fase
+      // Salvar cada fase - SEMPRE salvar todas as 4 fases, mesmo sem dados
       const fases = [
         { nome: 'ideacao', dados: dados.ideacao, ordem: 1 },
         { nome: 'modelagem', dados: dados.modelagem, ordem: 2 },
@@ -473,45 +471,63 @@ export class ProjetosService {
       ];
 
       for (const fase of fases) {
-        if (fase.dados) {
-          // Salvar descrição da fase
-          const faseUuid = await this.projetosDao.salvarFaseProjeto(
-            projetoUuid,
-            fase.nome,
-            fase.dados.descricao || '',
-            fase.ordem,
-            client,
-          );
+        // Sempre salvar a fase, mesmo que não tenha dados
+        // Se não tiver dados, será salva com descrição vazia e status "Pendente"
+        const descricao = fase.dados?.descricao || '';
+        const faseUuid = await this.projetosDao.salvarFaseProjeto(
+          projetoUuid,
+          fase.nome,
+          descricao,
+          fase.ordem,
+          client,
+        );
 
-          // Processar anexos enviados no payload (podem ser URLs já existentes ou novos)
-          if (fase.dados.anexos && fase.dados.anexos.length > 0) {
-            for (const anexo of fase.dados.anexos) {
-              // Verificar se há arquivo físico para este anexo
-              const fieldname = `${fase.nome}_${anexo.tipo}`;
-              const arquivo = arquivosPorCampo.get(fieldname);
+        // Processar anexos enviados no payload (podem ser URLs já existentes ou novos)
+        if (fase.dados?.anexos && fase.dados.anexos.length > 0) {
+          for (const anexo of fase.dados.anexos) {
+            // Verificar se há arquivo físico para este anexo
+            const fieldname = `${fase.nome}_${anexo.tipo}`;
+            const arquivo = arquivosPorCampo.get(fieldname);
 
-              if (arquivo) {
-                // Validar arquivo
-                await validarArquivoCompleto(arquivo, 'ANEXO_GERAL');
+            if (arquivo) {
+              // Validar arquivo
+              await validarArquivoCompleto(arquivo, 'ANEXO_GERAL');
 
-                // Salvar arquivo no disco
-                const caminhoRelativo = await salvarArquivoLocal(
-                  arquivo,
-                  `projetos/${fase.nome}`,
-                );
+              // Salvar arquivo no disco
+              const caminhoRelativo = await salvarArquivoLocal(
+                arquivo,
+                `projetos/${fase.nome}`,
+              );
 
-                // Atualizar anexo com URL do arquivo salvo
-                anexo.url_arquivo = caminhoRelativo;
-                anexo.nome_arquivo = arquivo.originalname;
-                anexo.tamanho_bytes = arquivo.size;
-                anexo.mime_type = arquivo.mimetype;
-              }
-
-              // Salvar ou atualizar anexo no banco (UPSERT)
-              // Isso vai sobrescrever apenas o anexo específico pelo tipo
-              await this.projetosDao.salvarAnexoFase(faseUuid, anexo, client);
+              // Atualizar anexo com URL do arquivo salvo
+              anexo.url_arquivo = caminhoRelativo;
+              anexo.nome_arquivo = arquivo.originalname;
+              anexo.tamanho_bytes = arquivo.size;
+              anexo.mime_type = arquivo.mimetype;
             }
+
+            // Salvar ou atualizar anexo no banco (UPSERT)
+            // Isso vai sobrescrever apenas o anexo específico pelo tipo
+            await this.projetosDao.salvarAnexoFase(faseUuid, anexo, client);
           }
+        }
+      }
+
+      // Recalcular status de todas as fases após salvar todos os anexos
+      // Isso garante que o status esteja correto mesmo quando várias fases são salvas na mesma criação
+      // Recalcular TODAS as fases (mesmo as que não tinham dados)
+      for (const fase of fases) {
+        // Buscar UUID da fase salva
+        const faseResult = await client.query(
+          `SELECT uuid FROM projetos_fases WHERE projeto_uuid = $1 AND nome_fase = $2`,
+          [projetoUuid, fase.nome],
+        );
+
+        if (faseResult.rows.length > 0) {
+          const faseUuid = faseResult.rows[0].uuid;
+          // Recalcular status considerando descrição e anexos já salvos
+          // Se não tiver descrição nem anexos, o status será "Pendente"
+          await this.projetosDao.recalcularStatusFase(faseUuid, client);
         }
       }
 
@@ -528,8 +544,12 @@ export class ProjetosService {
         client,
       );
 
-      // Calcular e atualizar fase atual
-      const novaFase = this.calcularFaseAtual(dados);
+      // Calcular e atualizar fase atual usando nova lógica progressiva
+      // Agora todos os status estão recalculados corretamente
+      const novaFase = await this.calcularFaseAtualPorStatus(
+        projetoUuid,
+        client,
+      );
       await this.projetosDao.atualizarFaseAtual(projetoUuid, novaFase, client);
 
       await client.query('COMMIT');
@@ -975,7 +995,9 @@ export class ProjetosService {
 
     // Alunos não podem excluir projetos publicados — devem solicitar ao orientador
     if (usuario.tipo === 'ALUNO' && projeto.status === 'PUBLICADO') {
-      throw new ForbiddenException('Alunos não podem excluir projetos publicados. Solicite a desativação ao orientador.');
+      throw new ForbiddenException(
+        'Alunos não podem excluir projetos publicados. Solicite a desativação ao orientador.',
+      );
     }
 
     // Permissão: ADMIN, líder (ALUNO), orientador (DOCENTE) ou criador
@@ -1058,9 +1080,7 @@ export class ProjetosService {
     }
 
     if (!temPermissao) {
-      throw new ForbiddenException(
-        'Sem permissão para remover este anexo',
-      );
+      throw new ForbiddenException('Sem permissão para remover este anexo');
     }
 
     await this.projetosDao.removerAnexoFaseIndividual(anexoUuid);
@@ -1185,20 +1205,80 @@ export class ProjetosService {
   }
 
   /**
-   * Calcula a fase atual do projeto baseado no preenchimento
+   * Calcula a fase atual do projeto baseado no status das fases (lógica progressiva)
    */
-  private calcularFaseAtual(dados: Passo4ProjetoDto): string {
-    const hasContent = (fase: any) =>
-      fase &&
-      fase.descricao &&
-      fase.descricao.trim().length >= 50 &&
-      fase.anexos &&
-      fase.anexos.length > 0;
+  private async calcularFaseAtualPorStatus(
+    projetoUuid: string,
+    client?: PoolClient,
+  ): Promise<string> {
+    // Buscar todas as fases do projeto com seus status diretamente do banco
+    const db = client || this.pool;
+    const fasesResult = await db.query(
+      `SELECT 
+        pf.uuid,
+        pf.nome_fase,
+        pf.descricao,
+        pf.ordem,
+        pf.status
+       FROM projetos_fases pf
+       WHERE pf.projeto_uuid = $1
+       ORDER BY pf.ordem`,
+      [projetoUuid],
+    );
 
-    if (hasContent(dados.implementacao)) return 'IMPLEMENTACAO';
-    if (hasContent(dados.prototipagem)) return 'IMPLEMENTACAO'; // Se já fez prototipagem, vai para implementação
-    if (hasContent(dados.modelagem)) return 'PROTOTIPAGEM';
-    if (hasContent(dados.ideacao)) return 'MODELAGEM';
+    const fases = fasesResult.rows;
+
+    // Mapear fases por nome para facilitar acesso
+    const fasesMap: Record<string, any> = {};
+    for (const fase of fases) {
+      fasesMap[fase.nome_fase] = fase;
+    }
+
+    const ideacao = fasesMap['ideacao'];
+    const modelagem = fasesMap['modelagem'];
+    const prototipagem = fasesMap['prototipagem'];
+    const implementacao = fasesMap['implementacao'];
+
+    // Verificar de trás para frente (Implementação → Prototipagem → Modelagem → Ideação)
+    // Implementação: só pode ser fase_atual se estiver (em andamento OU concluída) E todas anteriores concluídas
+    if (
+      implementacao &&
+      (implementacao.status === 'Em andamento' ||
+        implementacao.status === 'Concluído') &&
+      ideacao?.status === 'Concluído' &&
+      modelagem?.status === 'Concluído' &&
+      prototipagem?.status === 'Concluído'
+    ) {
+      return 'IMPLEMENTACAO';
+    }
+
+    // Prototipagem: só pode ser fase_atual se estiver (em andamento OU concluída) E Ideação e Modelagem concluídas
+    if (
+      prototipagem &&
+      (prototipagem.status === 'Em andamento' ||
+        prototipagem.status === 'Concluído') &&
+      ideacao?.status === 'Concluído' &&
+      modelagem?.status === 'Concluído'
+    ) {
+      return 'PROTOTIPAGEM';
+    }
+
+    // Modelagem: só pode ser fase_atual se estiver (em andamento OU concluída) E Ideação concluída
+    if (
+      modelagem &&
+      (modelagem.status === 'Em andamento' ||
+        modelagem.status === 'Concluído') &&
+      ideacao?.status === 'Concluído'
+    ) {
+      return 'MODELAGEM';
+    }
+
+    // Ideação: pode ser fase_atual em qualquer status (pendente, em andamento ou concluída)
+    if (ideacao) {
+      return 'IDEACAO';
+    }
+
+    // Caso contrário: fase_atual = 'IDEACAO'
     return 'IDEACAO';
   }
 

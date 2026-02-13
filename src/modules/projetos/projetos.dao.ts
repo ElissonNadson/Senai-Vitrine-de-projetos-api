@@ -220,7 +220,7 @@ export class ProjetosDao {
   async buscarFases(projetoUuid: string): Promise<any> {
     // 1. Buscar as fases
     const fasesResult = await this.pool.query(
-      `SELECT uuid, nome_fase, descricao, ordem
+      `SELECT uuid, nome_fase, descricao, ordem, status
        FROM projetos_fases
        WHERE projeto_uuid = $1
        ORDER BY ordem`,
@@ -241,6 +241,7 @@ export class ProjetosDao {
       fases[fase.nome_fase] = {
         uuid: fase.uuid,
         descricao: fase.descricao,
+        status: fase.status || 'Pendente',
         anexos: anexosResult.rows.map((a) => ({
           ...a,
           file: null, // Frontend expects File object but we can only provide metadata here. Frontend must handle 'id' based existing files.
@@ -334,7 +335,16 @@ export class ProjetosDao {
           WHERE pp.projeto_uuid = p.uuid
         ) as orientadores,
         -- Total de autores
-        (SELECT COUNT(*) FROM projetos_alunos pa WHERE pa.projeto_uuid = p.uuid) as total_autores
+        (SELECT COUNT(*) FROM projetos_alunos pa WHERE pa.projeto_uuid = p.uuid) as total_autores,
+        -- Subquery para status das fases (JSON object)
+        (
+          SELECT COALESCE(json_object_agg(
+            pf.nome_fase,
+            json_build_object('status', pf.status)
+          ), '{}'::json)
+          FROM projetos_fases pf
+          WHERE pf.projeto_uuid = p.uuid
+        ) as status_fases
       FROM projetos p
       LEFT JOIN departamentos d ON p.departamento_uuid = d.uuid
       LEFT JOIN usuarios lider_user ON p.lider_uuid = lider_user.uuid
@@ -354,10 +364,73 @@ export class ProjetosDao {
     }
 
     if (filtros.fase) {
-      params.push(filtros.fase);
-      countParams.push(filtros.fase);
-      query += ` AND p.fase_atual = $${params.length}`;
-      countQuery += ` AND p.fase_atual = $${countParams.length}`;
+      // Normalizar fase recebida (pode vir como "Ideação", "Ideacao", "IDEACAO", etc.)
+      const normalizeFase = (fase: string): string => {
+        // Remover acentos e converter para maiúsculas
+        const normalized = fase
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toUpperCase();
+
+        // Mapear para valores aceitos pelo banco
+        const faseMap: Record<string, string> = {
+          IDEACAO: 'IDEACAO',
+          MODELAGEM: 'MODELAGEM',
+          PROTOTIPAGEM: 'PROTOTIPAGEM',
+          IMPLEMENTACAO: 'IMPLEMENTACAO',
+        };
+
+        return faseMap[normalized] || normalized;
+      };
+
+      const faseNormalizada = normalizeFase(filtros.fase);
+      // Mapear nome da fase para nome_fase no banco
+      const faseMap: Record<string, string> = {
+        IDEACAO: 'ideacao',
+        MODELAGEM: 'modelagem',
+        PROTOTIPAGEM: 'prototipagem',
+        IMPLEMENTACAO: 'implementacao',
+      };
+      const nomeFase =
+        faseMap[faseNormalizada] || faseNormalizada.toLowerCase();
+
+      // Se status_fase também foi fornecido, filtrar apenas por status da fase específica
+      // Isso permite encontrar projetos em fases posteriores que já concluíram a fase filtrada
+      if (filtros.status_fase) {
+        params.push(nomeFase);
+        params.push(filtros.status_fase);
+        countParams.push(nomeFase);
+        countParams.push(filtros.status_fase);
+        query += ` AND EXISTS (
+          SELECT 1 FROM projetos_fases pf
+          WHERE pf.projeto_uuid = p.uuid
+          AND pf.nome_fase = $${params.length - 1}
+          AND pf.status = $${params.length}
+        )`;
+        countQuery += ` AND EXISTS (
+          SELECT 1 FROM projetos_fases pf
+          WHERE pf.projeto_uuid = p.uuid
+          AND pf.nome_fase = $${countParams.length - 1}
+          AND pf.status = $${countParams.length}
+        )`;
+      } else {
+        // Se apenas a fase foi selecionada (sem status), verificar se a fase tem algum conteúdo (não está pendente)
+        // Isso permite encontrar projetos em fases posteriores que já iniciaram a fase filtrada
+        params.push(nomeFase);
+        countParams.push(nomeFase);
+        query += ` AND EXISTS (
+          SELECT 1 FROM projetos_fases pf
+          WHERE pf.projeto_uuid = p.uuid
+          AND pf.nome_fase = $${params.length}
+          AND pf.status != 'Pendente'
+        )`;
+        countQuery += ` AND EXISTS (
+          SELECT 1 FROM projetos_fases pf
+          WHERE pf.projeto_uuid = p.uuid
+          AND pf.nome_fase = $${countParams.length}
+          AND pf.status != 'Pendente'
+        )`;
+      }
     }
 
     if (filtros.tecnologia_uuid) {
@@ -740,6 +813,36 @@ export class ProjetosDao {
   }
 
   /**
+   * Calcula o status de uma fase baseado em descrição e anexos
+   */
+  private async calcularStatusFase(
+    faseUuid: string,
+    descricao: string,
+    client?: PoolClient,
+  ): Promise<string> {
+    const db = client || this.pool;
+
+    // Verificar se tem descrição não vazia
+    const temDescricao = descricao && descricao.trim().length > 0;
+
+    // Verificar se tem anexos
+    const anexosResult = await db.query(
+      `SELECT COUNT(*) as count FROM projetos_fases_anexos WHERE fase_uuid = $1`,
+      [faseUuid],
+    );
+    const temAnexos = parseInt(anexosResult.rows[0]?.count || '0') > 0;
+
+    // Calcular status
+    if (temDescricao && temAnexos) {
+      return 'Concluído';
+    } else if (temDescricao || temAnexos) {
+      return 'Em andamento';
+    } else {
+      return 'Pendente';
+    }
+  }
+
+  /**
    * Salva ou atualiza fase do projeto (Passo 4)
    */
   async salvarFaseProjeto(
@@ -760,7 +863,44 @@ export class ProjetosDao {
       [projetoUuid, nomeFase, descricao, ordem],
     );
 
-    return result.rows[0].uuid;
+    const faseUuid = result.rows[0].uuid;
+
+    // Calcular e atualizar status da fase
+    const status = await this.calcularStatusFase(faseUuid, descricao, client);
+    await db.query(`UPDATE projetos_fases SET status = $1 WHERE uuid = $2`, [
+      status,
+      faseUuid,
+    ]);
+
+    return faseUuid;
+  }
+
+  /**
+   * Recalcula e atualiza o status de uma fase
+   */
+  async recalcularStatusFase(
+    faseUuid: string,
+    client?: PoolClient,
+  ): Promise<void> {
+    const db = client || this.pool;
+
+    // Buscar fase com descricao
+    const faseResult = await db.query(
+      `SELECT descricao FROM projetos_fases WHERE uuid = $1`,
+      [faseUuid],
+    );
+
+    if (faseResult.rows.length === 0) {
+      return;
+    }
+
+    const descricao = faseResult.rows[0].descricao || '';
+    const status = await this.calcularStatusFase(faseUuid, descricao, client);
+
+    await db.query(`UPDATE projetos_fases SET status = $1 WHERE uuid = $2`, [
+      status,
+      faseUuid,
+    ]);
   }
 
   /**
@@ -788,6 +928,9 @@ export class ProjetosDao {
         anexo.mime_type || null,
       ],
     );
+
+    // Recalcular status da fase após adicionar anexo
+    await this.recalcularStatusFase(faseUuid, client);
   }
 
   /**
@@ -801,6 +944,9 @@ export class ProjetosDao {
     await db.query('DELETE FROM projetos_fases_anexos WHERE fase_uuid = $1', [
       faseUuid,
     ]);
+
+    // Recalcular status da fase após remover anexos
+    await this.recalcularStatusFase(faseUuid, client);
   }
 
   /**
@@ -809,21 +955,26 @@ export class ProjetosDao {
   async removerAnexoFaseIndividual(
     anexoUuid: string,
     client?: PoolClient,
-  ): Promise<{ url_arquivo: string } | null> {
+  ): Promise<{ url_arquivo: string; fase_uuid: string } | null> {
     const db = client || this.pool;
     const result = await db.query(
-      'DELETE FROM projetos_fases_anexos WHERE uuid = $1 RETURNING url_arquivo',
+      'DELETE FROM projetos_fases_anexos WHERE uuid = $1 RETURNING url_arquivo, fase_uuid',
       [anexoUuid],
     );
-    return result.rows[0] || null;
+    const anexo = result.rows[0] || null;
+
+    // Recalcular status da fase após remover anexo
+    if (anexo && anexo.fase_uuid) {
+      await this.recalcularStatusFase(anexo.fase_uuid, client);
+    }
+
+    return anexo;
   }
 
   /**
    * Busca um anexo de fase com informações do projeto associado
    */
-  async buscarAnexoFaseComProjeto(
-    anexoUuid: string,
-  ): Promise<any> {
+  async buscarAnexoFaseComProjeto(anexoUuid: string): Promise<any> {
     const result = await this.pool.query(
       `SELECT a.uuid, a.url_arquivo, a.nome_arquivo, f.projeto_uuid, p.criado_por_uuid, p.status
        FROM projetos_fases_anexos a
@@ -897,6 +1048,7 @@ export class ProjetosDao {
         pf.nome_fase,
         pf.descricao,
         pf.ordem,
+        pf.status,
         json_agg(
           json_build_object(
             'uuid', pfa.uuid,
@@ -911,7 +1063,7 @@ export class ProjetosDao {
        FROM projetos_fases pf
        LEFT JOIN projetos_fases_anexos pfa ON pf.uuid = pfa.fase_uuid
        WHERE pf.projeto_uuid = $1
-       GROUP BY pf.uuid, pf.nome_fase, pf.descricao, pf.ordem
+       GROUP BY pf.uuid, pf.nome_fase, pf.descricao, pf.ordem, pf.status
        ORDER BY pf.ordem`,
       [projetoUuid],
     );
