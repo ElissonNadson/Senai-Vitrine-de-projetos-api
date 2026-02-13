@@ -307,7 +307,7 @@ export class ProjetosDao {
     let query = `
       SELECT 
         p.uuid, p.titulo, p.descricao, p.banner_url, p.fase_atual, 
-        p.criado_em, p.data_publicacao, p.status, p.visibilidade,
+        p.criado_em, p.atualizado_em, p.data_publicacao, p.status, p.visibilidade,
         p.itinerario, p.senai_lab, p.saga_senai, p.participou_edital, p.ganhou_premio,
         p.categoria,
         d.nome as departamento, d.cor_hex as departamento_cor,
@@ -612,7 +612,7 @@ export class ProjetosDao {
     const query = `
       SELECT 
         p.uuid, p.titulo, p.descricao, p.banner_url, p.fase_atual, 
-        p.criado_em, p.data_publicacao, p.status, p.visibilidade,
+        p.criado_em, p.atualizado_em, p.data_publicacao, p.status, p.visibilidade,
         d.nome as departamento, d.cor_hex as departamento_cor,
         COALESCE(p.curso, c.nome) as curso_nome, c.sigla as curso_sigla,
         -- Subquery para autores (JSON array)
