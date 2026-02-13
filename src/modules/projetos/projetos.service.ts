@@ -706,6 +706,19 @@ export class ProjetosService {
   /**
    * Busca projeto completo por UUID
    */
+  /**
+   * Busca dados mínimos do projeto para Open Graph meta tags
+   */
+  async buscarDadosOG(uuid: string): Promise<any> {
+    const result = await this.pool.query(
+      `SELECT titulo, descricao, banner_url
+       FROM projetos
+       WHERE uuid = $1 AND status = 'PUBLICADO'`,
+      [uuid],
+    );
+    return result.rows[0] || null;
+  }
+
   async buscarProjeto(uuid: string, usuario?: any): Promise<any> {
     const projeto = await this.projetosDao.buscarPorUuid(uuid);
 
@@ -1015,6 +1028,42 @@ export class ProjetosService {
     );
 
     return { mensagem: 'Projeto arquivado com sucesso' };
+  }
+
+  /**
+   * Verifica se o usuário tem permissão para acessar anexos de um projeto
+   * Para projetos com anexos públicos, qualquer um pode acessar
+   * Para projetos com anexos privados, apenas membros da equipe
+   */
+  async verificarPermissaoAnexo(projetoUuid: string, usuario?: any): Promise<void> {
+    const projeto = await this.projetosDao.buscarPorUuid(projetoUuid);
+    if (!projeto) {
+      throw new NotFoundException('Projeto não encontrado');
+    }
+
+    // Se anexos são públicos, permitir acesso
+    if (projeto.anexos_visibilidade !== 'Privado') {
+      return;
+    }
+
+    // Se privado, verificar permissão
+    if (!usuario) {
+      throw new ForbiddenException('Anexos privados requerem autenticação');
+    }
+
+    if (usuario.tipo === 'ADMIN') return;
+
+    if (usuario.tipo === 'ALUNO') {
+      const isAutor = await this.projetosDao.verificarAutorProjeto(projetoUuid, usuario.uuid);
+      if (isAutor) return;
+    }
+
+    if (usuario.tipo === 'DOCENTE' || usuario.tipo === 'PROFESSOR') {
+      const isOrientador = await this.projetosDao.verificarOrientadorProjeto(projetoUuid, usuario.uuid);
+      if (isOrientador) return;
+    }
+
+    throw new ForbiddenException('Sem permissão para acessar os anexos deste projeto');
   }
 
   /**

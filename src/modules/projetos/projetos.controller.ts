@@ -7,12 +7,17 @@ import {
   Body,
   Param,
   Query,
+  Res,
   UseGuards,
   UseInterceptors,
   UploadedFiles,
+  NotFoundException,
 } from '@nestjs/common';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
+import { Response } from 'express';
+import { join } from 'path';
+import { existsSync } from 'fs';
 import { ProjetosService } from './projetos.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import {
@@ -189,6 +194,106 @@ export class ProjetosController {
   @UseGuards(AuthGuard('jwt'))
   async listarMeusProjetos(@CurrentUser() usuario: any) {
     return this.projetosService.listarMeusProjetos(usuario);
+  }
+
+  /**
+   * GET /projetos/:uuid/anexo/:fase/:arquivo
+   * Serve arquivos de anexos protegidos (verifica permissão para anexos privados)
+   */
+  @Get(':uuid/anexo/:fase/:arquivo')
+  async servirAnexo(
+    @Param('uuid') uuid: string,
+    @Param('fase') fase: string,
+    @Param('arquivo') arquivo: string,
+    @Res() res: Response,
+    @CurrentUser() usuario?: any,
+  ) {
+    // Validar parâmetros para prevenir path traversal
+    if (fase.includes('..') || arquivo.includes('..') || fase.includes('/') || arquivo.includes('/')) {
+      throw new NotFoundException('Arquivo não encontrado');
+    }
+
+    const fasesValidas = ['ideacao', 'modelagem', 'prototipagem', 'implementacao'];
+    if (!fasesValidas.includes(fase)) {
+      throw new NotFoundException('Arquivo não encontrado');
+    }
+
+    // Verificar permissão para anexos privados
+    await this.projetosService.verificarPermissaoAnexo(uuid, usuario);
+
+    // Resolver caminho físico do arquivo
+    const uploadPath = process.env.UPLOAD_PATH || './uploads';
+    const caminhoArquivo = join(uploadPath, 'projetos', fase, arquivo);
+
+    if (!existsSync(caminhoArquivo)) {
+      throw new NotFoundException('Arquivo não encontrado');
+    }
+
+    return res.sendFile(caminhoArquivo, { root: process.cwd() });
+  }
+
+  /**
+   * GET /projetos/og/:uuid
+   * Retorna HTML com meta tags Open Graph para previews em redes sociais
+   */
+  @Get('og/:uuid')
+  async openGraphMeta(@Param('uuid') uuid: string, @Res() res: Response) {
+    try {
+      const result = await this.projetosService.buscarDadosOG(uuid);
+      if (!result) {
+        return res.status(404).send('Projeto não encontrado');
+      }
+
+      const siteUrl = 'https://vitrinesenaifeira.cloud';
+      const projectUrl = `${siteUrl}/vitrine/${uuid}`;
+      const title = this.escapeHtml(result.titulo || 'Projeto SENAI');
+      const description = this.escapeHtml(
+        (result.descricao || 'Projeto acadêmico desenvolvido no SENAI-BA').substring(0, 200),
+      );
+      const image = result.banner_url
+        ? result.banner_url.startsWith('http')
+          ? result.banner_url
+          : `${siteUrl}${result.banner_url.startsWith('/') ? '' : '/'}${result.banner_url}`
+        : `${siteUrl}/Senai.png`;
+
+      const html = `<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <title>${title} - Vitrine SENAI</title>
+  <meta name="description" content="${description}" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="${title}" />
+  <meta property="og:description" content="${description}" />
+  <meta property="og:image" content="${image}" />
+  <meta property="og:url" content="${projectUrl}" />
+  <meta property="og:site_name" content="Vitrine de Projetos SENAI-BA" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${title}" />
+  <meta name="twitter:description" content="${description}" />
+  <meta name="twitter:image" content="${image}" />
+  <meta http-equiv="refresh" content="0;url=${projectUrl}" />
+</head>
+<body>
+  <p>Redirecionando para <a href="${projectUrl}">${title}</a>...</p>
+</body>
+</html>`;
+
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      return res.send(html);
+    } catch {
+      return res.status(404).send('Projeto não encontrado');
+    }
+  }
+
+  private escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
   /**

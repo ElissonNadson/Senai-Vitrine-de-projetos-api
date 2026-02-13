@@ -20,6 +20,7 @@ export class AuthMiddleware implements NestMiddleware {
       req.method === 'GET' &&
       (
         /^\/projetos\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(path) ||
+        /^\/projetos\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/anexo\//.test(path) ||
         path.includes('/noticias')
       );
 
