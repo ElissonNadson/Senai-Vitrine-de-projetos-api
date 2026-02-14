@@ -3,7 +3,7 @@ import { Pool, PoolClient } from 'pg';
 
 @Injectable()
 export class ProjetosDao {
-  constructor(@Inject('PG_POOL') private readonly pool: Pool) {}
+  constructor(@Inject('PG_POOL') private readonly pool: Pool) { }
 
   /**
    * Verifica se título já existe
@@ -180,7 +180,7 @@ export class ProjetosDao {
   }
 
   /**
-   * Busca orientadores do projeto
+   * Busca orientadores do projeto (apenas ativos)
    */
   async buscarOrientadores(projetoUuid: string): Promise<any[]> {
     const result = await this.pool.query(
@@ -190,12 +190,62 @@ export class ProjetosDao {
        INNER JOIN usuarios u ON pp.usuario_uuid = u.uuid
        LEFT JOIN docentes p ON pp.usuario_uuid = p.usuario_uuid
        LEFT JOIN departamentos d ON p.departamento_uuid = d.uuid
-       WHERE pp.projeto_uuid = $1
+       WHERE pp.projeto_uuid = $1 AND (pp.ativo = true OR pp.ativo IS NULL)
        ORDER BY u.nome`,
       [projetoUuid],
     );
 
     return result.rows;
+  }
+
+  /**
+   * Busca histórico completo de orientadores do projeto
+   */
+  async buscarHistoricoOrientadores(projetoUuid: string): Promise<any[]> {
+    const result = await this.pool.query(
+      `SELECT pp.usuario_uuid, u.nome, u.email, u.avatar_url, pp.papel, pp.ativo, pp.adicionado_em, pp.removido_em
+       FROM projetos_docentes pp
+       INNER JOIN usuarios u ON pp.usuario_uuid = u.uuid
+       WHERE pp.projeto_uuid = $1
+       ORDER BY pp.removido_em DESC NULLS FIRST, pp.adicionado_em DESC`,
+      [projetoUuid],
+    );
+
+    return result.rows;
+  }
+
+  /**
+   * Desativa orientadores que não estão na lista de exceção
+   */
+  async desativarOrientadores(
+    projetoUuid: string,
+    exceptUuids: string[],
+    client?: PoolClient,
+  ): Promise<void> {
+    const db = client || this.pool;
+
+    if (exceptUuids.length === 0) {
+      // Se a lista de exceção for vazia, desativa todos
+      await db.query(
+        `UPDATE projetos_docentes 
+         SET ativo = false, removido_em = NOW() 
+         WHERE projeto_uuid = $1 AND (ativo = true OR ativo IS NULL)`,
+        [projetoUuid]
+      );
+      return;
+    }
+
+    // Postgres requer parâmetros posicionais numerados.
+    // Vamos construir a query e parâmetros dinamicamente.
+    const params: any[] = [projetoUuid];
+    let query = `UPDATE projetos_docentes SET ativo = false, removido_em = NOW() WHERE projeto_uuid = $1 AND (ativo = true OR ativo IS NULL)`;
+
+    // Adiciona UUIDs para a cláusula NOT IN
+    const placeholders = exceptUuids.map((_, i) => `$${i + 2}`).join(', ');
+    query += ` AND usuario_uuid NOT IN (${placeholders})`;
+    params.push(...exceptUuids);
+
+    await db.query(query, params);
   }
 
   /**
@@ -750,14 +800,14 @@ export class ProjetosDao {
         data_publicacao: row.data_publicacao,
         departamento: row.departamento
           ? {
-              nome: row.departamento,
-              cor_hex: row.departamento_cor,
-            }
+            nome: row.departamento,
+            cor_hex: row.departamento_cor,
+          }
           : null,
         curso: row.curso_nome
           ? {
-              nome: row.curso_nome,
-            }
+            nome: row.curso_nome,
+          }
           : null,
         autores: row.autores || [],
         orientadores: row.orientadores || [],

@@ -31,7 +31,7 @@ export class ProjetosService {
     @Inject('PG_POOL') private readonly pool: Pool,
     private readonly projetosDao: ProjetosDao,
     private readonly notificacoesService: NotificacoesService,
-  ) {}
+  ) { }
 
   /**
    * Passo 1: Criar rascunho com informações básicas
@@ -297,21 +297,10 @@ export class ProjetosService {
       const orientadoresAnteriores =
         await this.projetosDao.buscarOrientadores(projetoUuid);
 
-      // Remove autores e orientadores atuais
+      // Remove autores atuais (mantém delete físico para alunos)
       await client.query(
         'DELETE FROM projetos_alunos WHERE projeto_uuid = $1',
         [projetoUuid],
-      );
-      await client.query(
-        'DELETE FROM projetos_docentes WHERE projeto_uuid = $1',
-        [projetoUuid],
-      );
-
-      // Adiciona autores
-      await this.projetosDao.adicionarAutores(
-        projetoUuid,
-        dados.autores,
-        client,
       );
 
       // Garante que o criador docente não se remova da lista de orientadores
@@ -329,12 +318,40 @@ export class ProjetosService {
         }
       }
 
-      // Adiciona orientadores
-      await this.projetosDao.adicionarOrientadores(
+      // Lógica de Orientadores com Histórico (Soft Delete)
+      // 1. Busca orientadores ativos atuais
+      // A função buscarOrientadores agora retorna apenas ativos (ajustado no DAO)
+      // Mas precisamos usar o client da transação
+      // Como buscarOrientadores usa this.pool, melhor fazer a query direta aqui ou confiar que a leitura fora da transação é ok?
+      // Melhor fazer query rápida para pegar IDs dos ativos
+      const orientadoresAtivosResult = await client.query(
+        `SELECT usuario_uuid FROM projetos_docentes WHERE projeto_uuid = $1 AND (ativo = true OR ativo IS NULL)`,
+        [projetoUuid]
+      );
+      const orientadoresAtivosUuids = orientadoresAtivosResult.rows.map(r => r.usuario_uuid);
+
+      // 2. Desativa quem não está mais na lista nova
+      // A lista 'docentesUuids' contém a nova equipe desejada
+      await this.projetosDao.desativarOrientadores(projetoUuid, docentesUuids, client);
+
+      // 3. Adiciona autores (alunos)
+      await this.projetosDao.adicionarAutores(
         projetoUuid,
-        docentesUuids,
+        dados.autores,
         client,
       );
+
+      // 4. Filtra novos orientadores para inserir (apenas quem não estava ativo)
+      const novosOrientadoresParaInserir = docentesUuids.filter(uuid => !orientadoresAtivosUuids.includes(uuid));
+
+      // 5. Adiciona novos orientadores
+      if (novosOrientadoresParaInserir.length > 0) {
+        await this.projetosDao.adicionarOrientadores(
+          projetoUuid,
+          novosOrientadoresParaInserir,
+          client,
+        );
+      }
 
       // Registra auditoria
       await this.projetosDao.registrarAuditoria(
@@ -774,29 +791,30 @@ export class ProjetosService {
       }
     }
 
-    // Busca dados relacionados
-    const autores = await this.projetosDao.buscarAutores(uuid);
-    const orientadores = await this.projetosDao.buscarOrientadores(uuid);
-    const tecnologias = await this.projetosDao.buscarTecnologias(uuid);
-    const fases = await this.projetosDao.buscarFases(uuid);
+    // Busca dados complementares
+    projeto.autores = await this.projetosDao.buscarAutores(uuid);
+    projeto.orientadores = await this.projetosDao.buscarOrientadores(uuid);
+    projeto.historico_orientadores = await this.projetosDao.buscarHistoricoOrientadores(uuid);
+    projeto.tecnologias = await this.projetosDao.buscarTecnologias(uuid);
+    projeto.fases = await this.projetosDao.buscarFases(uuid);
 
     // Censura emails se usuário não autenticado ou não é participante
-    let autoresCensurados = autores;
-    let orientadoresCensurados = orientadores;
+    let autoresCensurados = projeto.autores;
+    let orientadoresCensurados = projeto.orientadores;
 
     if (!usuario || usuario.tipo === 'VISITANTE') {
-      autoresCensurados = autores.map((a) => ({
+      autoresCensurados = projeto.autores.map((a) => ({
         ...a,
         email: censurarEmail(a.email),
       }));
-      orientadoresCensurados = orientadores.map((o) => ({
+      orientadoresCensurados = projeto.orientadores.map((o) => ({
         ...o,
         email: censurarEmail(o.email),
       }));
     }
 
     // Verifica se deve proteger URLs de anexos privados
-    let fasesFiltradas = fases;
+    let fasesFiltradas = projeto.fases;
     if (projeto.anexos_visibilidade === 'Privado') {
       // Verifica se o usuário tem permissão para ver os anexos
       let temPermissaoAnexos = false;
@@ -819,11 +837,12 @@ export class ProjetosService {
       }
 
       // Para anexos privados, sempre modifica as URLs
-      fasesFiltradas = Object.keys(fases).reduce((acc, faseName) => {
-        const fase = fases[faseName];
+      fasesFiltradas = Object.keys(projeto.fases).reduce((acc, faseName) => {
+        const fase = projeto.fases[faseName];
         if (fase && fase.anexos) {
           acc[faseName] = {
             ...fase,
+            // @ts-ignore
             anexos: fase.anexos.map((anexo) => {
               if (!temPermissaoAnexos) {
                 // Sem permissão: remove a URL completamente
@@ -833,8 +852,6 @@ export class ProjetosService {
                 };
               } else {
                 // Com permissão: troca para endpoint protegido
-                // De: /api/uploads/projetos/ideacao/arquivo.pdf
-                // Para: /api/projetos/:uuid/anexo/ideacao/arquivo.pdf
                 const urlOriginal = anexo.url_arquivo || '';
                 const match = urlOriginal.match(/\/uploads\/projetos\/(.*)/);
                 if (match) {
@@ -858,7 +875,7 @@ export class ProjetosService {
       ...projeto,
       autores: autoresCensurados,
       orientadores: orientadoresCensurados,
-      tecnologias,
+      tecnologias: projeto.tecnologias,
       fases: fasesFiltradas,
     };
   }
