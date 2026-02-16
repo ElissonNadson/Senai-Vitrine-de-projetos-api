@@ -20,15 +20,12 @@ async function bootstrap() {
   }));
 
   app.use(cors({
-    origin: [
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'https://vitrinesenaifeira.cloud',
-      'http://vitrinesenaifeira.cloud'
-    ],
+    origin: process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',')
+      : ['http://localhost:5173', 'http://localhost:3000'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    credentials: true, // Permite cookies e credenciais
+    credentials: true,
   }));
   app.use(cookieParser()); // <-- habilita cookies
 
