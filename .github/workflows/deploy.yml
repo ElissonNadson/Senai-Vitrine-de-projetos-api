@@ -18,10 +18,18 @@ jobs:
             set -e
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+            echo "📂 Navigating to project directory..."
             cd /srv/projetos/vitrine-dev/api
+            echo "📥 Pulling latest changes..."
             git pull origin develop
+            echo "📦 Installing dependencies..."
             npm ci
+            echo "🔨 Building API..."
             npm run build
+            echo "🐳 Stopping containers..."
             docker compose -f docker-compose.dev.yml down
+            echo "🐳 Rebuilding and starting containers..."
             docker compose -f docker-compose.dev.yml up -d --build
+            echo "🐳 Container status:"
+            docker compose -f docker-compose.dev.yml ps
             echo "✅ API DEV deploy complete!"
