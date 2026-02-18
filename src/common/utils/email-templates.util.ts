@@ -4,7 +4,7 @@ const map: Record<string, string> = {
   VINCULO_REMOVIDO: 'Você foi removido de um projeto',
   PROJETO_PUBLICADO: 'Projeto publicado',
   PROJETO_ATUALIZADO: 'Projeto atualizado',
-  PROJETO_ARQUIVADO: 'Projeto arquivado',
+  PROJETO_ARQUIVADO: 'Projeto desativado',
   SOLICITACAO_DESATIVACAO: 'Solicitação de desativação',
   SOLICITACAO_DECISAO: 'Solicitação de desativação',
 };

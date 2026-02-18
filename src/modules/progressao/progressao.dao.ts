@@ -95,7 +95,7 @@ export class ProgressaoDao {
     }
 
     // Projetos concluídos não progridem
-    if (faseAtual === 'CONCLUIDO' || faseAtual === 'ARQUIVADO') {
+    if (faseAtual === 'CONCLUIDO' || faseAtual === 'ARQUIVADO' || faseAtual === 'DESATIVADO') {
       return {
         podeProgredir: false,
         faseAtual,

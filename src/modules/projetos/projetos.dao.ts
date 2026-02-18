@@ -706,7 +706,7 @@ export class ProjetosDao {
   async deletarProjeto(projetoUuid: string): Promise<void> {
     await this.pool.query(
       'UPDATE projetos SET status = $1, arquivado = TRUE WHERE uuid = $2',
-      ['ARQUIVADO', projetoUuid],
+      ['DESATIVADO', projetoUuid],
     );
   }
 
@@ -726,10 +726,10 @@ export class ProjetosDao {
       whereClause = `WHERE (
         p.uuid IN (SELECT pp.projeto_uuid FROM projetos_docentes pp WHERE pp.usuario_uuid = $1)
         OR p.criado_por_uuid = $1
-      ) AND p.status NOT IN ('ARQUIVADO', 'EXCLUIDO')`;
+      ) AND p.status NOT IN ('DESATIVADO', 'ARQUIVADO', 'EXCLUIDO')`;
     } else {
       // Para aluno, buscar por lider_uuid ou criado_por_uuid
-      whereClause = `WHERE (p.lider_uuid = $1 OR p.criado_por_uuid = $1) AND p.status NOT IN ('ARQUIVADO', 'EXCLUIDO')`;
+      whereClause = `WHERE (p.lider_uuid = $1 OR p.criado_por_uuid = $1) AND p.status NOT IN ('DESATIVADO', 'ARQUIVADO', 'EXCLUIDO')`;
     }
 
     const query = `

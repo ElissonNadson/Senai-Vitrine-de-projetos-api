@@ -149,12 +149,11 @@ export class DashboardDao {
       GROUP BY fase_atual
       ORDER BY 
         CASE fase_atual
-          WHEN 'PLANEJAMENTO' THEN 1
-          WHEN 'EM_DESENVOLVIMENTO' THEN 2
-          WHEN 'EM_TESTE' THEN 3
-          WHEN 'AGUARDANDO_REVISAO' THEN 4
-          WHEN 'CONCLUIDO' THEN 5
-          ELSE 6
+          WHEN 'IDEACAO' THEN 1
+          WHEN 'MODELAGEM' THEN 2
+          WHEN 'PROTOTIPAGEM' THEN 3
+          WHEN 'IMPLEMENTACAO' THEN 4
+          ELSE 5
         END
     `);
 

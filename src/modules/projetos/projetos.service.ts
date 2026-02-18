@@ -1066,7 +1066,7 @@ export class ProjetosService {
       projeto.titulo,
     );
 
-    return { mensagem: 'Projeto arquivado com sucesso' };
+    return { mensagem: 'Projeto desativado com sucesso' };
   }
 
   /**

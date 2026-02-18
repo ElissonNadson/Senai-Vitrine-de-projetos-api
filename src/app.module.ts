@@ -15,6 +15,8 @@ import { SessoesModule } from './modules/sessoes/sessoes.module';
 import { NoticiasModule } from './modules/noticias/noticias.module';
 import { ProjetosArquivadosModule } from './modules/projetos-arquivados/projetos-arquivados.module';
 import { SolicitacoesModule } from './modules/solicitacoes/solicitacoes.module';
+import { AdminReportsModule } from './modules/admin-reports/admin-reports.module';
+import { AdminProjetosModule } from './modules/admin-projetos/admin-projetos.module';
 import * as cookieParser from 'cookie-parser';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
@@ -32,6 +34,7 @@ import { join } from 'path';
     ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), 'uploads'),
       serveRoot: '/uploads',
+      serveStaticOptions: { index: false },
     }),
     ScheduleModule.forRoot(),
     BullModule.forRoot({
@@ -66,6 +69,8 @@ import { join } from 'path';
     NoticiasModule,
     ProjetosArquivadosModule,
     SolicitacoesModule,
+    AdminReportsModule,
+    AdminProjetosModule,
     JwtModule
   ],
 })

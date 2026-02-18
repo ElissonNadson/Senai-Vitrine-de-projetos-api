@@ -7,6 +7,12 @@ import {
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 
+const ADMIN_EMAILS = [
+  'nadsonnodachi@gmail.com',
+  'admin@admin.com',
+  'senaifeira@senaifeira',
+];
+
 /**
  * Guard para verificar roles do usuário
  * Usa em conjunto com @Roles() decorator
@@ -22,7 +28,6 @@ export class RolesGuard implements CanActivate {
     );
 
     if (!requiredRoles) {
-      // Se não há roles definidas, permite acesso
       return true;
     }
 
@@ -32,7 +37,14 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('Usuário não autenticado');
     }
 
-    const hasRole = requiredRoles.some((role) => user.tipo === role);
+    const isAdmin =
+      user.tipo === 'ADMIN' ||
+      ADMIN_EMAILS.includes(user.email?.toLowerCase());
+
+    const hasRole =
+      isAdmin && requiredRoles.includes('ADMIN')
+        ? true
+        : requiredRoles.some((role) => user.tipo === role);
 
     if (!hasRole) {
       throw new ForbiddenException(

@@ -173,10 +173,10 @@ export class ProjetosArquivadosDao {
     );
 
     if (solicitacao.rows.length > 0) {
-      // Atualiza status do projeto para ARQUIVADO
+      // Atualiza status do projeto para DESATIVADO
       await db.query(
         `UPDATE projetos 
-         SET status = 'ARQUIVADO', arquivado = TRUE
+         SET status = 'DESATIVADO', arquivado = TRUE
          WHERE uuid = $1`,
         [solicitacao.rows[0].projeto_uuid],
       );
