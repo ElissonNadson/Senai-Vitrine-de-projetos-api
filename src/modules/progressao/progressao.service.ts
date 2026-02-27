@@ -52,6 +52,7 @@ export class ProgressaoService {
       'EM_TESTE',
       'AGUARDANDO_REVISAO',
       'CONCLUIDO',
+      'DESATIVADO',
       'ARQUIVADO',
     ];
 

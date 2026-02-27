@@ -426,8 +426,8 @@ export class ProjetosArquivadosService {
     const projeto = projetoResult.rows[0];
     if (!projeto) throw new NotFoundException('Projeto não encontrado');
 
-    if (projeto.status === 'ARQUIVADO') {
-      throw new BadRequestException('Este projeto já está arquivado');
+    if (projeto.status === 'DESATIVADO' || projeto.status === 'ARQUIVADO') {
+      throw new BadRequestException('Este projeto já está desativado');
     }
 
     // Verifica se o docente é orientador do projeto (ou admin)
@@ -447,7 +447,7 @@ export class ProjetosArquivadosService {
 
       // Arquiva o projeto
       await client.query(
-        `UPDATE projetos SET status = 'ARQUIVADO', arquivado = TRUE WHERE uuid = $1`,
+        `UPDATE projetos SET status = 'DESATIVADO', arquivado = TRUE WHERE uuid = $1`,
         [projetoUuid],
       );
 
@@ -537,8 +537,8 @@ export class ProjetosArquivadosService {
     const projeto = projetoResult.rows[0];
     if (!projeto) throw new NotFoundException('Projeto não encontrado');
 
-    if (projeto.status !== 'ARQUIVADO' && projeto.status !== 'EXCLUIDO') {
-      throw new BadRequestException('Apenas projetos arquivados ou excluídos podem ser reativados');
+    if (projeto.status !== 'DESATIVADO' && projeto.status !== 'ARQUIVADO' && projeto.status !== 'EXCLUIDO') {
+      throw new BadRequestException('Apenas projetos desativados ou excluídos podem ser reativados');
     }
 
     const client = await this.pool.connect();
@@ -592,8 +592,8 @@ export class ProjetosArquivadosService {
     const projeto = projetoResult.rows[0];
     if (!projeto) throw new NotFoundException('Projeto não encontrado');
 
-    if (projeto.status !== 'ARQUIVADO' && projeto.status !== 'EXCLUIDO') {
-      throw new BadRequestException('Este projeto não está excluído');
+    if (projeto.status !== 'DESATIVADO' && projeto.status !== 'ARQUIVADO' && projeto.status !== 'EXCLUIDO') {
+      throw new BadRequestException('Este projeto não está desativado');
     }
 
     // Verifica se já existe solicitação de reativação pendente
@@ -662,7 +662,7 @@ export class ProjetosArquivadosService {
                u.nome as criador_nome
         FROM projetos p
         LEFT JOIN usuarios u ON p.criado_por_uuid = u.uuid
-        WHERE p.arquivado = TRUE OR p.status IN ('ARQUIVADO', 'EXCLUIDO')
+        WHERE p.arquivado = TRUE OR p.status IN ('DESATIVADO', 'ARQUIVADO', 'EXCLUIDO')
         ORDER BY p.atualizado_em DESC
       `;
       params = [];
@@ -675,7 +675,7 @@ export class ProjetosArquivadosService {
         LEFT JOIN projetos_docentes pd ON p.uuid = pd.projeto_uuid
         LEFT JOIN usuarios u ON p.criado_por_uuid = u.uuid
         WHERE (pd.usuario_uuid = $1 OR p.criado_por_uuid = $1)
-          AND (p.arquivado = TRUE OR p.status IN ('ARQUIVADO', 'EXCLUIDO'))
+          AND (p.arquivado = TRUE OR p.status IN ('DESATIVADO', 'ARQUIVADO', 'EXCLUIDO'))
         ORDER BY p.atualizado_em DESC
       `;
       params = [usuario.uuid];
@@ -689,7 +689,7 @@ export class ProjetosArquivadosService {
         LEFT JOIN projetos_alunos pa ON p.uuid = pa.projeto_uuid
         LEFT JOIN usuarios u ON p.criado_por_uuid = u.uuid
         WHERE (pa.usuario_uuid = $1 OR p.criado_por_uuid = $1)
-          AND (p.arquivado = TRUE OR p.status IN ('ARQUIVADO', 'EXCLUIDO'))
+          AND (p.arquivado = TRUE OR p.status IN ('DESATIVADO', 'ARQUIVADO', 'EXCLUIDO'))
         ORDER BY p.atualizado_em DESC
       `;
       params = [usuario.uuid];

@@ -264,14 +264,14 @@ export class NotificacoesService {
     await this.notificarAutores(
       projetoUuid,
       'PROJETO_ARQUIVADO',
-      'Projeto arquivado',
-      `O projeto "${projetoTitulo}" foi arquivado.`,
+      'Projeto desativado',
+      `O projeto "${projetoTitulo}" foi desativado.`,
     );
     await this.notificarOrientadores(
       projetoUuid,
       'PROJETO_ARQUIVADO',
-      'Projeto arquivado',
-      `O projeto "${projetoTitulo}" foi arquivado.`,
+      'Projeto desativado',
+      `O projeto "${projetoTitulo}" foi desativado.`,
     );
   }
 
