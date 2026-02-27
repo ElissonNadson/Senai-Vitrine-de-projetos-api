@@ -734,7 +734,7 @@ export class ProjetosDao {
 
     const query = `
       SELECT 
-        p.uuid, p.titulo, p.descricao, p.banner_url, p.fase_atual, 
+        p.uuid, p.titulo, p.descricao, p.banner_url, p.fase_atual, p.categoria,
         p.criado_em, p.atualizado_em, p.data_publicacao, p.status, p.visibilidade,
         d.nome as departamento, d.cor_hex as departamento_cor,
         COALESCE(p.curso, c.nome) as curso_nome, c.sigla as curso_sigla,
@@ -809,6 +809,7 @@ export class ProjetosDao {
             nome: row.curso_nome,
           }
           : null,
+        categoria: row.categoria || null,
         autores: row.autores || [],
         orientadores: row.orientadores || [],
         total_autores: parseInt(row.total_autores || '0'),
