@@ -94,15 +94,20 @@ export class ProjetosDao {
   async adicionarOrientadores(
     projetoUuid: string,
     orientadoresUuids: string[],
+    orientadorAtualUuid?: string,
     client?: PoolClient,
   ): Promise<void> {
     const db = client || this.pool;
 
     for (const docenteUuid of orientadoresUuids) {
+      // Se não houver orientadorAtualUuid fornecido, todos são ORIENTADOR (retrocompatibilidade)
+      // Se houver, apenas ele é ORIENTADOR, os demais são COORIENTADOR
+      const papel = !orientadorAtualUuid || docenteUuid === orientadorAtualUuid ? 'ORIENTADOR' : 'COORIENTADOR';
+
       await db.query(
-        `INSERT INTO projetos_docentes (projeto_uuid, usuario_uuid)
-         VALUES ($1, $2)`,
-        [projetoUuid, docenteUuid],
+        `INSERT INTO projetos_docentes (projeto_uuid, usuario_uuid, papel)
+         VALUES ($1, $2, $3)`,
+        [projetoUuid, docenteUuid, papel],
       );
     }
   }
@@ -185,13 +190,15 @@ export class ProjetosDao {
   async buscarOrientadores(projetoUuid: string): Promise<any[]> {
     const result = await this.pool.query(
       `SELECT pp.usuario_uuid, u.nome, u.email, u.avatar_url,
-              d.nome as departamento_nome
+              d.nome as departamento_nome, pp.papel
        FROM projetos_docentes pp
        INNER JOIN usuarios u ON pp.usuario_uuid = u.uuid
        LEFT JOIN docentes p ON pp.usuario_uuid = p.usuario_uuid
        LEFT JOIN departamentos d ON p.departamento_uuid = d.uuid
        WHERE pp.projeto_uuid = $1 AND (pp.ativo = true OR pp.ativo IS NULL)
-       ORDER BY u.nome`,
+       ORDER BY 
+         CASE WHEN pp.papel = 'ORIENTADOR' THEN 1 ELSE 2 END,
+         u.nome`,
       [projetoUuid],
     );
 
@@ -377,12 +384,13 @@ export class ProjetosDao {
         -- Subquery para orientadores (JSON array)
         (
           SELECT COALESCE(json_agg(json_build_object(
-            'nome', u.nome
-          ) ORDER BY u.nome), '[]'::json)
+            'nome', u.nome,
+            'papel', pp.papel
+          ) ORDER BY CASE WHEN pp.papel = 'ORIENTADOR' THEN 1 ELSE 2 END, u.nome), '[]'::json)
           FROM projetos_docentes pp
           INNER JOIN docentes prof ON pp.usuario_uuid = prof.usuario_uuid
           INNER JOIN usuarios u ON prof.usuario_uuid = u.uuid
-          WHERE pp.projeto_uuid = p.uuid
+          WHERE pp.projeto_uuid = p.uuid AND (pp.ativo = true OR pp.ativo IS NULL)
         ) as orientadores,
         -- Total de autores
         (SELECT COUNT(*) FROM projetos_alunos pa WHERE pa.projeto_uuid = p.uuid) as total_autores,
@@ -752,12 +760,13 @@ export class ProjetosDao {
         -- Subquery para orientadores (JSON array)
         (
           SELECT COALESCE(json_agg(json_build_object(
-            'nome', u.nome
-          ) ORDER BY u.nome), '[]'::json)
+            'nome', u.nome,
+            'papel', pp.papel
+          ) ORDER BY CASE WHEN pp.papel = 'ORIENTADOR' THEN 1 ELSE 2 END, u.nome), '[]'::json)
           FROM projetos_docentes pp
           LEFT JOIN docentes prof ON pp.usuario_uuid = prof.usuario_uuid
           INNER JOIN usuarios u ON prof.usuario_uuid = u.uuid
-          WHERE pp.projeto_uuid = p.uuid
+          WHERE pp.projeto_uuid = p.uuid AND (pp.ativo = true OR pp.ativo IS NULL)
         ) as orientadores,
         -- Subquery para tecnologias (JSON array)
         (

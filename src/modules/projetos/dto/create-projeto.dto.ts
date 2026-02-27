@@ -136,6 +136,11 @@ export class Passo3ProjetoDto {
   @ArrayMinSize(1, { message: 'Projeto deve ter pelo menos 1 orientador' })
   @ArrayMaxSize(5, { message: 'Projeto pode ter no máximo 5 orientadores' })
   docentes_uuids: string[];
+
+  @IsString()
+  @IsOptional()
+  @IsUUID('4', { message: 'UUID do orientador atual inválido' })
+  orientador_atual_uuid?: string;
 }
 
 /**

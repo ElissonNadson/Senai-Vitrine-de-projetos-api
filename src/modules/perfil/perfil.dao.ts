@@ -3,7 +3,7 @@ import { Pool, PoolClient } from 'pg';
 
 @Injectable()
 export class PerfilDao {
-  constructor(@Inject('PG_POOL') private readonly pool: Pool) {}
+  constructor(@Inject('PG_POOL') private readonly pool: Pool) { }
 
   /**
    * Obtém cliente de conexão para transações
@@ -63,34 +63,32 @@ export class PerfilDao {
   ): Promise<any> {
     const result = await client.query(
       `UPDATE alunos
-       SET matricula = COALESCE($1, matricula),
-           curso_uuid = COALESCE($2, curso_uuid),
-           turma_uuid = COALESCE($3, turma_uuid),
-           telefone = COALESCE($4, telefone),
-           bio = COALESCE($5, bio),
-           linkedin_url = COALESCE($6, linkedin_url),
-           github_url = COALESCE($7, github_url),
-           portfolio_url = COALESCE($8, portfolio_url),
-           instagram_url = COALESCE($9, instagram_url),
-           tiktok_url = COALESCE($10, tiktok_url),
-           facebook_url = COALESCE($11, facebook_url),
-
+       SET matricula = COALESCE($1::text, matricula),
+           curso_uuid = COALESCE($2::uuid, curso_uuid),
+           turma_uuid = COALESCE($3::uuid, turma_uuid),
+           telefone = COALESCE($4::text, telefone),
+           bio = COALESCE($5::text, bio),
+           linkedin_url = COALESCE($6::text, linkedin_url),
+           github_url = COALESCE($7::text, github_url),
+           portfolio_url = COALESCE($8::text, portfolio_url),
+           instagram_url = COALESCE($9::text, instagram_url),
+           tiktok_url = COALESCE($10::text, tiktok_url),
+           facebook_url = COALESCE($11::text, facebook_url),
            atualizado_em = NOW()
-       WHERE usuario_uuid = $19
+       WHERE usuario_uuid = $12::uuid
        RETURNING *`,
       [
-        dados.matricula,
-        dados.curso_uuid,
-        dados.turma_uuid,
-        dados.telefone,
-        dados.bio,
-        dados.linkedin_url,
-        dados.github_url,
-        dados.portfolio_url,
-        dados.instagram_url,
-        dados.tiktok_url,
-        dados.facebook_url,
-
+        dados.matricula || null,
+        dados.curso_uuid || null,
+        dados.turma_uuid || null,
+        dados.telefone || null,
+        dados.bio || null,
+        dados.linkedin_url || null,
+        dados.github_url || null,
+        dados.portfolio_url || null,
+        dados.instagram_url || null,
+        dados.tiktok_url || null,
+        dados.facebook_url || null,
         usuarioUuid,
       ],
     );
@@ -107,24 +105,24 @@ export class PerfilDao {
   ): Promise<any> {
     const result = await client.query(
       `UPDATE docentes
-       SET matricula = COALESCE($1, matricula),
-           departamento_uuid = COALESCE($2, departamento_uuid),
-           especialidade = COALESCE($3, especialidade),
-           telefone = COALESCE($4, telefone),
-           bio = COALESCE($5, bio),
-           linkedin_url = COALESCE($6, linkedin_url),
-           lattes_url = COALESCE($7, lattes_url),
+       SET matricula = COALESCE($1::text, matricula),
+           departamento_uuid = COALESCE($2::uuid, departamento_uuid),
+           especialidade = COALESCE($3::text, especialidade),
+           telefone = COALESCE($4::text, telefone),
+           bio = COALESCE($5::text, bio),
+           linkedin_url = COALESCE($6::text, linkedin_url),
+           lattes_url = COALESCE($7::text, lattes_url),
            atualizado_em = NOW()
-       WHERE usuario_uuid = $8
+       WHERE usuario_uuid = $8::uuid
        RETURNING *`,
       [
-        dados.matricula,
-        dados.departamento_uuid,
-        dados.especialidade,
-        dados.telefone,
-        dados.bio,
-        dados.linkedin_url,
-        dados.lattes_url,
+        dados.matricula || null,
+        dados.departamento_uuid || null,
+        dados.especialidade || null,
+        dados.telefone || null,
+        dados.bio || null,
+        dados.linkedin_url || null,
+        dados.lattes_url || null,
         usuarioUuid,
       ],
     );

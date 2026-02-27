@@ -349,7 +349,24 @@ export class ProjetosService {
         await this.projetosDao.adicionarOrientadores(
           projetoUuid,
           novosOrientadoresParaInserir,
+          dados.orientador_atual_uuid,
           client,
+        );
+      }
+
+      // 6. Atualiza o papel de todos os orientadores ativos para refletir o "Orientador Atual"
+      if (dados.orientador_atual_uuid) {
+        await client.query(
+          `UPDATE projetos_docentes 
+           SET papel = CASE WHEN usuario_uuid = $1 THEN 'ORIENTADOR' ELSE 'COORIENTADOR' END
+           WHERE projeto_uuid = $2 AND (ativo = true OR ativo IS NULL)`,
+          [dados.orientador_atual_uuid, projetoUuid]
+        );
+      } else {
+        // Se nenhum foi passado (fallback), garantir que todos sejam ORIENTADOR
+        await client.query(
+          `UPDATE projetos_docentes SET papel = 'ORIENTADOR' WHERE projeto_uuid = $1 AND (ativo = true OR ativo IS NULL)`,
+          [projetoUuid]
         );
       }
 
@@ -843,14 +860,9 @@ export class ProjetosService {
           acc[faseName] = {
             ...fase,
             // @ts-ignore
-            anexos: fase.anexos.map((anexo) => {
-              if (!temPermissaoAnexos) {
-                // Sem permissão: remove a URL completamente
-                return {
-                  ...anexo,
-                  url_arquivo: undefined,
-                };
-              } else {
+            anexos: !temPermissaoAnexos
+              ? [] // Sem permissão: oculta os dados dos anexos
+              : fase.anexos.map((anexo) => {
                 // Com permissão: troca para endpoint protegido
                 const urlOriginal = anexo.url_arquivo || '';
                 const match = urlOriginal.match(/\/uploads\/projetos\/(.*)/);
@@ -861,8 +873,9 @@ export class ProjetosService {
                   };
                 }
                 return anexo;
-              }
-            }),
+              }),
+            // Contagem real de anexos (mesmo sem permissão)
+            anexos_count: fase.anexos.length,
           };
         } else {
           acc[faseName] = fase;
