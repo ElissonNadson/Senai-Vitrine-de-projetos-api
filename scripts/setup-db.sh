@@ -93,6 +93,10 @@ main() {
             [ -f "database/migrations/007_add_expiration_date.sql" ] && run_migration "database/migrations/007_add_expiration_date.sql"
             [ -f "database/migrations/010_rename_professor_to_docente.sql" ] && run_migration "database/migrations/010_rename_professor_to_docente.sql"
             [ -f "database/migrations/011_add_participou_edital_ganhou_premio.sql" ] && run_migration "database/migrations/011_add_participou_edital_ganhou_premio.sql"
+            [ -f "database/migrations/012_add_status_projetos_fases.sql" ] && run_migration "database/migrations/012_add_status_projetos_fases.sql"
+            [ -f "database/migrations/013_soft_delete_docentes.sql" ] && run_migration "database/migrations/013_soft_delete_docentes.sql"
+            [ -f "database/migrations/014_rename_arquivado_to_desativado.sql" ] && run_migration "database/migrations/014_rename_arquivado_to_desativado.sql"
+            [ -f "database/migrations/015_move_modalidade_from_cursos_to_turmas.sql" ] && run_migration "database/migrations/015_move_modalidade_from_cursos_to_turmas.sql"
             ;;
         seed|seeds)
             echo -e "${GREEN}🚀 Executando seeds...${NC}"
@@ -120,6 +124,10 @@ main() {
             [ -f "database/migrations/007_add_expiration_date.sql" ] && run_migration "database/migrations/007_add_expiration_date.sql"
             [ -f "database/migrations/010_rename_professor_to_docente.sql" ] && run_migration "database/migrations/010_rename_professor_to_docente.sql"
             [ -f "database/migrations/011_add_participou_edital_ganhou_premio.sql" ] && run_migration "database/migrations/011_add_participou_edital_ganhou_premio.sql"
+            [ -f "database/migrations/012_add_status_projetos_fases.sql" ] && run_migration "database/migrations/012_add_status_projetos_fases.sql"
+            [ -f "database/migrations/013_soft_delete_docentes.sql" ] && run_migration "database/migrations/013_soft_delete_docentes.sql"
+            [ -f "database/migrations/014_rename_arquivado_to_desativado.sql" ] && run_migration "database/migrations/014_rename_arquivado_to_desativado.sql"
+            [ -f "database/migrations/015_move_modalidade_from_cursos_to_turmas.sql" ] && run_migration "database/migrations/015_move_modalidade_from_cursos_to_turmas.sql"
             run_seeds
             check_status
             ;;

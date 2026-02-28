@@ -44,12 +44,6 @@ function safeString(value: unknown): string {
   return String(value ?? '').trim();
 }
 
-function extractYearFromFilename(filePath: string): number | null {
-  const match = path.basename(filePath).match(/(20\d{2})/);
-  if (!match) return null;
-  return Number(match[1]);
-}
-
 function normalizeClassCode(code: string): string {
   const trimmed = safeString(code);
 
@@ -174,7 +168,7 @@ async function readXlsx(filePath: string): Promise<CsvRow[]> {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.readFile(filePath);
 
-  const worksheet = workbook.getWorksheet(1);
+  const worksheet = workbook.getWorksheet(1) || workbook.worksheets[0];
   return rowsFromWorksheet(worksheet);
 }
 
@@ -234,18 +228,9 @@ async function run(): Promise<void> {
     console.log('Conectado ao banco de dados.');
 
     for (const dataFilePath of dataFiles) {
-      const year = extractYearFromFilename(dataFilePath);
-      if (!year) {
-        console.warn(
-          `Arquivo ignorado (ano não encontrado no nome): ${path.basename(dataFilePath)}`,
-        );
-        continue;
-      }
-
-      console.log(
-        `\nProcessando ${path.basename(dataFilePath)} (ano ${year})...`,
-      );
+      console.log(`\nProcessando ${path.basename(dataFilePath)}...`);
       const extension = path.extname(dataFilePath).toLowerCase();
+
       const rows =
         extension === '.xlsx'
           ? await readXlsx(dataFilePath)
@@ -258,6 +243,7 @@ async function run(): Promise<void> {
         const nome = getFirstAvailableValue(row, ['NOME', 'ALUNO']);
         const cursoNome = getFirstAvailableValue(row, ['CURSO']);
         const codTurmaRaw = getFirstAvailableValue(row, ['CODTURMA', 'TURMA']);
+        const modalidadeTurma = getFirstAvailableValue(row, ['TIPO_CURSO']);
 
         const email = normalizeEmail(emailRaw);
         const codigoTurma = normalizeClassCode(codTurmaRaw);
@@ -336,13 +322,21 @@ async function run(): Promise<void> {
 
           if (existingTurma.rowCount) {
             turmaUuid = existingTurma.rows[0].uuid;
+            if (modalidadeTurma) {
+              await client.query(
+                `UPDATE turmas
+                   SET modalidade = $2
+                 WHERE uuid = $1`,
+                [turmaUuid, modalidadeTurma],
+              );
+            }
             reusedTurmas += 1;
           } else {
             turmaUuid = uuidv4();
             await client.query(
-              `INSERT INTO turmas (uuid, curso_uuid, codigo, ano)
-                             VALUES ($1, $2, $3, $4)`,
-              [turmaUuid, cursoUuid, codigoTurma, year],
+              `INSERT INTO turmas (uuid, curso_uuid, codigo, ano, modalidade)
+                             VALUES ($1, $2, $3, 2026, $4)`,
+              [turmaUuid, cursoUuid, codigoTurma, modalidadeTurma || null],
             );
             createdTurmas += 1;
           }
