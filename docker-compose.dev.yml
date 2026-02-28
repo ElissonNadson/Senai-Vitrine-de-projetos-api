@@ -72,22 +72,7 @@ services:
     ports:
       - "3001:3000"
     environment:
-      - PORT=3000
-      - NODE_ENV=development
-      - JWT_SECRET=desenvolvimento-secret-key-32chars-min
-      - SUPER_TOKEN=super-token-desenvolvimento
-      - DATABASE=vitrine_projetos
-      - USERNAME=postgres
-      - PASSWORD=postgres123
-      - DB_PORT=5432
-      - HOST=vitrine-senai-db
-      - REDIS_HOST=vitrine-senai-redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-placeholder-client-id.apps.googleusercontent.com}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-placeholder-client-secret}
-      - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL:-http://localhost:3000/auth/google/callback}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+      - .env
     networks:
       - vitrine-senai-network
     depends_on:
