@@ -274,6 +274,10 @@ async function run(): Promise<void> {
 
           if (existingUser.rowCount) {
             usuarioUuid = existingUser.rows[0].uuid;
+            await client.query(
+              `UPDATE usuarios SET nome = $1 WHERE uuid = $2`,
+              [nome, usuarioUuid],
+            );
             reusedUsuarios += 1;
           } else {
             usuarioUuid = uuidv4();
