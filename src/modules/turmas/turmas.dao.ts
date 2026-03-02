@@ -28,7 +28,7 @@ export class TurmasDao {
       query += cursoUuid ? ' AND t.ativa = TRUE' : ' WHERE t.ativa = TRUE';
     }
 
-    query += ' ORDER BY t.ano DESC, t.semestre DESC, c.nome';
+    query += ` ORDER BY NULLIF(regexp_replace(codigo, '\D', '', 'g'), '')::int`;
 
     const result = await this.pool.query(query, params);
     return result.rows;
