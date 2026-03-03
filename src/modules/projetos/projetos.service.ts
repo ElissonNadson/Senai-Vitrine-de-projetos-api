@@ -90,6 +90,7 @@ export class ProjetosService {
         await this.projetosDao.adicionarOrientadores(
           projetoUuid,
           [usuario.uuid],
+          null,
           client,
         );
       }
