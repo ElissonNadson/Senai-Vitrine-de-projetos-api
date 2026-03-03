@@ -744,6 +744,7 @@ export class ProjetosDao {
       SELECT 
         p.uuid, p.titulo, p.descricao, p.banner_url, p.fase_atual, p.categoria,
         p.criado_em, p.atualizado_em, p.data_publicacao, p.status, p.visibilidade,
+        p.itinerario, p.senai_lab, p.saga_senai, p.participou_edital, p.ganhou_premio,
         d.nome as departamento, d.cor_hex as departamento_cor,
         COALESCE(p.curso, c.nome) as curso_nome, c.sigla as curso_sigla,
         -- Subquery para autores (JSON array)

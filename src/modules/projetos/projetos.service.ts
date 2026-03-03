@@ -405,7 +405,7 @@ export class ProjetosService {
         await this.notificacoesService.criarNotificacao(
           uuid,
           'VINCULO_ADICIONADO',
-          'Você foi adicionado ao projeto',
+          'Você foi adicionado a um projeto',
           `Você foi adicionado ao projeto "${projeto.titulo}"`,
           `/projetos/${projetoUuid}`,
           { projetoTitulo: projeto.titulo, papel: 'integrante' },
@@ -432,7 +432,7 @@ export class ProjetosService {
         await this.notificacoesService.criarNotificacao(
           uuid,
           'VINCULO_ADICIONADO',
-          'Você foi adicionado ao projeto',
+          'Você foi adicionado a um projeto',
           `Você foi adicionado como orientador no projeto "${projeto.titulo}"`,
           `/projetos/${projetoUuid}`,
           { projetoTitulo: projeto.titulo, papel: 'orientador' },
