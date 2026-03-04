@@ -13,7 +13,7 @@ services:
     ports:
       - 3001:3001
     env_file:
-      - ./.env
+      - ./.env.dev
     networks:
       - vitrine-senai-network
     restart: unless-stopped
